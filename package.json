@@ -5,7 +5,8 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "talkback": "./dist/index.js"
+    "talkback": "./dist/index.js",
+    "talkback-mcp": "./dist/mcp-server.js"
   },
   "repository": {
     "type": "git",
@@ -31,10 +32,19 @@
   },
   "keywords": [
     "tts",
+    "text-to-speech",
     "elevenlabs",
+    "openai",
     "cli",
     "voice",
-    "speech"
+    "speech",
+    "ai",
+    "coding-assistant",
+    "claude",
+    "cursor",
+    "aider",
+    "mcp",
+    "notifications"
   ],
   "license": "MIT",
   "engines": {
@@ -52,6 +62,8 @@
     "vitest": "^4.0.18"
   },
   "dependencies": {
-    "commander": "^14.0.3"
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "commander": "^14.0.3",
+    "zod": "^3.25.76"
   }
 }
