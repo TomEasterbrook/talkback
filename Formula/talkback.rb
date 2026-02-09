@@ -4,12 +4,12 @@
 
 class Talkback < Formula
   desc "Voice notifications for AI coding assistants and terminal workflows"
-  homepage "https://github.com/YOUR_USERNAME/talkback"
+  homepage "https://github.com/talkback/talkback"
   license "MIT"
-  head "https://github.com/YOUR_USERNAME/talkback.git", branch: "main"
+  head "https://github.com/talkback/talkback.git", branch: "main"
 
   # For stable releases, uncomment and update:
-  # url "https://github.com/YOUR_USERNAME/talkback/archive/refs/tags/v1.0.0.tar.gz"
+  # url "https://github.com/talkback/talkback/archive/refs/tags/v1.0.0.tar.gz"
   # sha256 "YOUR_SHA256_HERE"
   # version "1.0.0"
 
