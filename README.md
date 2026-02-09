@@ -67,7 +67,7 @@ Claude Code gets native tools: `speak`, `beep`, `reserve_voice`, `release_voice`
 Copy `.cursorrules` to your project:
 
 ```bash
-curl -o .cursorrules https://raw.githubusercontent.com/TalkbackAi/talkback/main/integrations/cursor/.cursorrules
+curl -o .cursorrules https://raw.githubusercontent.com/TalkbackAi/integrations/main/cursor/.cursorrules
 ```
 
 ### Continue.dev
@@ -89,7 +89,7 @@ Add custom commands to `~/.continue/config.json`:
 Copy config to your project or home:
 
 ```bash
-curl -o .aider.conf.yml https://raw.githubusercontent.com/TalkbackAi/talkback/main/integrations/aider/.aider.conf.yml
+curl -o .aider.conf.yml https://raw.githubusercontent.com/TalkbackAi/integrations/main/aider/.aider.conf.yml
 ```
 
 ## Features
@@ -372,12 +372,9 @@ src/
 ├── mcp-server.ts   # MCP server for AI agents
 └── git.ts          # Git hooks
 
-integrations/
-├── claude-code/    # MCP config
-├── cursor/         # .cursorrules
-├── continue/       # Slash commands
-└── aider/          # Config file
 ```
+
+**Agent integrations:** [TalkbackAi/integrations](https://github.com/TalkbackAi/integrations)
 
 ## License
 
