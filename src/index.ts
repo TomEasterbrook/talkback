@@ -49,6 +49,13 @@ import {
   disableQuietHours,
   formatQuietStatus,
 } from "./quiet.js";
+import {
+  getCurrentTheme,
+  setTheme,
+  getAllThemes,
+  getThemeNames,
+  isValidTheme,
+} from "./themes.js";
 
 // --- CLI Options Interface ---
 
@@ -795,6 +802,38 @@ program
 
     await setQuietHours(ranges);
     console.log(await formatQuietStatus());
+  });
+
+program
+  .command("theme")
+  .description("Set sound theme for beeps and notifications")
+  .argument("[name]", `Theme: ${getThemeNames().join(", ")}`)
+  .action(async (name?: string) => {
+    if (!name) {
+      // Show current theme and list all
+      const current = await getCurrentTheme();
+      console.log(`\nCurrent theme: ${current.displayName}\n`);
+      console.log("Available themes:\n");
+      for (const theme of getAllThemes()) {
+        const marker = theme.name === current.name ? " ← current" : "";
+        console.log(`  ${theme.name.padEnd(10)} ${theme.description}${marker}`);
+      }
+      console.log(`\nSet theme: talkback theme <name>\n`);
+      return;
+    }
+
+    if (!isValidTheme(name)) {
+      console.error(`Unknown theme: ${name}`);
+      console.error(`Available: ${getThemeNames().join(", ")}`);
+      process.exit(1);
+    }
+
+    await setTheme(name);
+    const theme = await getCurrentTheme();
+    console.log(`Theme set to: ${theme.displayName}`);
+
+    // Play a demo beep
+    await playBeep("success");
   });
 
 program.parseAsync().catch((err) => {

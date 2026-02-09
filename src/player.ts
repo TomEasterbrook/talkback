@@ -10,6 +10,7 @@ import { writeFile, unlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
+import { getCurrentTheme, soundSpecToSoxArgs } from "./themes.js";
 
 export async function playAudio(audioBuffer: Buffer): Promise<void> {
   const tempFile = join(tmpdir(), `talkback-${randomBytes(8).toString("hex")}.mp3`);
@@ -23,27 +24,15 @@ export async function playAudio(audioBuffer: Buffer): Promise<void> {
 }
 
 export async function playBeep(type: "success" | "error"): Promise<void> {
-  // Success: rising pitch (optimistic), Error: falling pitch (uh-oh)
-  const frequency = type === "success" ? "500:900" : "500:300";
-  await runPlay(["-n", "synth", "0.15", "sine", frequency, "vol", "0.5"]);
+  const theme = await getCurrentTheme();
+  const spec = type === "success" ? theme.successBeep : theme.errorBeep;
+  await runPlay(soundSpecToSoxArgs(spec));
 }
 
 export async function playVoiceSignature(frequencyHz: number): Promise<void> {
-  // Short, subtle tone to identify the voice (80ms, gentle fade)
-  await runPlay([
-    "-n",
-    "synth",
-    "0.08",
-    "sine",
-    String(frequencyHz),
-    "fade",
-    "t",
-    "0.01",
-    "0.08",
-    "0.02",
-    "vol",
-    "0.3",
-  ]);
+  const theme = await getCurrentTheme();
+  const args = soundSpecToSoxArgs(theme.signatureBase, frequencyHz);
+  await runPlay(args);
 }
 
 export async function isSoxInstalled(): Promise<boolean> {
