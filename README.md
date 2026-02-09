@@ -42,6 +42,20 @@ talkback --speed slow "Let me explain"
 
 # Use local TTS (free, works offline)
 talkback --local "No API needed"
+
+# Async mode - returns immediately, audio plays in background
+talkback --async "Build started"
+```
+
+### Async Mode
+
+For AI agents and scripts, use `--async` to return immediately without waiting for audio:
+
+```bash
+# Returns in ~50ms, audio plays in background
+talkback --async "Starting long build process"
+
+# Agent continues working while message plays
 ```
 
 ## TTS Providers
@@ -183,6 +197,7 @@ talkback -m 100 "This long message will be cut..."
 | `-m, --max-length <n>` | Truncate messages (default: 500) |
 | `-b, --beep <type>` | Quick sound: success, error |
 | `-l, --local` | Use local TTS instead of API |
+| `-a, --async` | Run in background, return immediately |
 | `--no-signature` | Skip the voice signature tone |
 | `-V, --version` | Show version number |
 
