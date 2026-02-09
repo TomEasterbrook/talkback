@@ -32,7 +32,6 @@ interface SpeakOptions {
   beep?: "success" | "error";
   local: boolean;
   signature?: boolean; // --no-signature sets this to false
-  async?: boolean; // Run in background, return immediately
 }
 
 interface StatsOptions {
@@ -569,19 +568,18 @@ program
   .option("-m, --max-length <n>", "Truncate to n characters", "500")
   .option("-b, --beep <type>", "Play sound instead: success, error")
   .option("-l, --local", "Use local TTS (macOS say / Linux espeak)", false)
-  .option("-a, --async", "Run in background, return immediately", false)
   .option("--no-signature", "Skip the voice signature tone")
   .action(async (message: string[], options: SpeakOptions) => {
-    // Async mode: respawn ourselves in background and exit immediately
-    if (options.async && !process.env.TALKBACK_SYNC) {
-      const args = process.argv.slice(2).filter(a => a !== "-a" && a !== "--async");
+    // Always run in background - respawn and exit immediately
+    if (!process.env.TALKBACK_SYNC) {
+      const args = process.argv.slice(2);
       const child = spawn(process.argv[0], [process.argv[1], ...args], {
         detached: true,
         stdio: "ignore",
         env: { ...process.env, TALKBACK_SYNC: "1" },
       });
       child.unref();
-      return; // Exit immediately
+      return;
     }
 
     await loadSavedAccent();
