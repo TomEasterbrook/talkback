@@ -41,6 +41,7 @@ import { installHooks, uninstallHooks, showHooksStatus } from "./git.js";
 import { speakLocal, isLocalTTSAvailable, getLocalTTSStatus } from "./local-tts.js";
 import { getFromCache, saveToCache, clearCache, getCacheStats, type CacheKey } from "./cache.js";
 import { createProvider, getProviderNames, type ProviderName } from "./providers.js";
+import { summarizeText, isSummarizationAvailable, getSummaryProviderName } from "./summarize.js";
 
 // --- CLI Options Interface ---
 
@@ -51,6 +52,7 @@ interface SpeakOptions {
   beep?: "success" | "error";
   local: boolean;
   signature?: boolean; // --no-signature sets this to false
+  summarize?: boolean; // AI-summarize long messages
 }
 
 interface StatsOptions {
@@ -354,8 +356,19 @@ async function configureProvider(name: ProviderName): Promise<void> {
 async function speak(text: string, options: SpeakOptions): Promise<void> {
   const maxLength = parseInt(String(options.maxLength), 10) || 500;
 
+  let processedText = text;
+
+  // AI summarization (if enabled and text is long)
+  if (options.summarize && text.length > 200) {
+    const result = await summarizeText(text, { maxChars: 150 });
+    if (result.savings > 0) {
+      processedText = result.summary;
+    }
+  }
+
   // Truncate if needed
-  const truncated = text.length > maxLength ? text.slice(0, maxLength - 3) + "..." : text;
+  const truncated =
+    processedText.length > maxLength ? processedText.slice(0, maxLength - 3) + "..." : processedText;
 
   // Process text for natural speech (phonetics, code stripping)
   const processed = processForSpeech(truncated);
@@ -644,6 +657,7 @@ program
   .option("-b, --beep <type>", "Play sound instead: success, error")
   .option("-l, --local", "Use local TTS (macOS say / Linux espeak)", false)
   .option("--no-signature", "Skip the voice signature tone")
+  .option("-s, --summarize", "AI-summarize long messages (saves TTS costs)")
   .action(async (message: string[], options: SpeakOptions) => {
     // Always run in background - respawn and exit immediately
     if (!process.env.TALKBACK_SYNC) {
