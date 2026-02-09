@@ -1,15 +1,15 @@
 # Homebrew formula for talkback
 # Install: brew tap <your-username>/talkback && brew install talkback
-# Or: brew install --HEAD <your-username>/talkback/talkback
+# Or: brew install --HEAD <your-username>/TalkbackAi/talkback
 
 class Talkback < Formula
   desc "Voice notifications for AI coding assistants and terminal workflows"
-  homepage "https://github.com/talkback/talkback"
+  homepage "https://github.com/TalkbackAi/talkback"
   license "MIT"
-  head "https://github.com/talkback/talkback.git", branch: "main"
+  head "https://github.com/TalkbackAi/talkback.git", branch: "main"
 
   # For stable releases, uncomment and update:
-  # url "https://github.com/talkback/talkback/archive/refs/tags/v1.0.0.tar.gz"
+  # url "https://github.com/TalkbackAi/talkback/archive/refs/tags/v1.0.0.tar.gz"
   # sha256 "YOUR_SHA256_HERE"
   # version "1.0.0"
 

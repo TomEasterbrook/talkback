@@ -15,7 +15,7 @@ npm install -g talkback-cli
 talkback "Hello world"
 
 # Or via Homebrew
-brew tap talkback/talkback
+brew tap TalkbackAi/talkback
 brew install talkback
 ```
 
@@ -67,7 +67,7 @@ Claude Code gets native tools: `speak`, `beep`, `reserve_voice`, `release_voice`
 Copy `.cursorrules` to your project:
 
 ```bash
-curl -o .cursorrules https://raw.githubusercontent.com/talkback/talkback/main/integrations/cursor/.cursorrules
+curl -o .cursorrules https://raw.githubusercontent.com/TalkbackAi/talkback/main/integrations/cursor/.cursorrules
 ```
 
 ### Continue.dev
@@ -89,7 +89,7 @@ Add custom commands to `~/.continue/config.json`:
 Copy config to your project or home:
 
 ```bash
-curl -o .aider.conf.yml https://raw.githubusercontent.com/talkback/talkback/main/integrations/aider/.aider.conf.yml
+curl -o .aider.conf.yml https://raw.githubusercontent.com/TalkbackAi/talkback/main/integrations/aider/.aider.conf.yml
 ```
 
 ## Features
