@@ -1,12 +1,22 @@
 {
-  "name": "talkback",
+  "name": "talkback-cli",
   "version": "1.0.0",
-  "description": "CLI voice tool for agentic coders - pipe text to speech via ElevenLabs",
+  "description": "Voice notifications for AI coding assistants - text-to-speech CLI with multi-provider support",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
     "talkback": "./dist/index.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/talkback.git"
+  },
+  "author": "",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/index.ts",
