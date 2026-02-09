@@ -1,0 +1,190 @@
+/**
+ * JSON schema validation for configuration and data files.
+ *
+ * Provides type guards and validators to ensure JSON files have the
+ * expected structure before use, preventing silent failures from
+ * corrupted or malformed data.
+ */
+
+import type { SpeechSpeed } from "./api.js";
+
+// --- Config validation ---
+
+export interface Config {
+  apiKey?: string;
+  accent?: "us" | "british";
+}
+
+export function isValidConfig(data: unknown): data is Config {
+  if (typeof data !== "object" || data === null) return false;
+
+  const obj = data as Record<string, unknown>;
+
+  if (obj.apiKey !== undefined && typeof obj.apiKey !== "string") return false;
+  if (obj.accent !== undefined && obj.accent !== "us" && obj.accent !== "british") return false;
+
+  return true;
+}
+
+export function parseConfig(content: string): Config {
+  const data = JSON.parse(content);
+  if (!isValidConfig(data)) {
+    throw new Error("Invalid config file format");
+  }
+  return data;
+}
+
+// --- Queue message validation ---
+
+export interface Message {
+  text: string;
+  voiceId: string;
+  voiceName: string;
+  speed: SpeechSpeed;
+  queuedAt: string;
+}
+
+function isValidSpeechSpeed(value: unknown): value is SpeechSpeed {
+  return value === "fast" || value === "normal" || value === "slow";
+}
+
+function isValidMessage(data: unknown): data is Message {
+  if (typeof data !== "object" || data === null) return false;
+
+  const obj = data as Record<string, unknown>;
+
+  return (
+    typeof obj.text === "string" &&
+    typeof obj.voiceId === "string" &&
+    typeof obj.voiceName === "string" &&
+    isValidSpeechSpeed(obj.speed) &&
+    typeof obj.queuedAt === "string"
+  );
+}
+
+export function isValidMessageQueue(data: unknown): data is Message[] {
+  if (!Array.isArray(data)) return false;
+  return data.every(isValidMessage);
+}
+
+export function parseMessageQueue(content: string): Message[] {
+  const data = JSON.parse(content);
+  if (!isValidMessageQueue(data)) {
+    throw new Error("Invalid queue file format");
+  }
+  return data;
+}
+
+// --- Stats validation ---
+
+export interface DailyUsage {
+  date: string;
+  characters: number;
+  messages: number;
+}
+
+export interface Stats {
+  totalCharacters: number;
+  totalMessages: number;
+  dailyUsage: DailyUsage[];
+  dailyBudget?: number;
+}
+
+function isValidDailyUsage(data: unknown): data is DailyUsage {
+  if (typeof data !== "object" || data === null) return false;
+
+  const obj = data as Record<string, unknown>;
+
+  return (
+    typeof obj.date === "string" &&
+    typeof obj.characters === "number" &&
+    typeof obj.messages === "number"
+  );
+}
+
+export function isValidStats(data: unknown): data is Stats {
+  if (typeof data !== "object" || data === null) return false;
+
+  const obj = data as Record<string, unknown>;
+
+  // Check required fields
+  if (typeof obj.totalCharacters !== "number") return false;
+  if (typeof obj.totalMessages !== "number") return false;
+  if (!Array.isArray(obj.dailyUsage)) return false;
+  if (!obj.dailyUsage.every(isValidDailyUsage)) return false;
+
+  // Check optional field
+  if (obj.dailyBudget !== undefined && typeof obj.dailyBudget !== "number") return false;
+
+  return true;
+}
+
+// Handle legacy format migration
+interface LegacyStats {
+  total?: { characters?: number; messages?: number };
+  daily?: DailyUsage[];
+  budget?: { dailyLimit?: number };
+}
+
+function isLegacyStats(data: unknown): data is LegacyStats {
+  if (typeof data !== "object" || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  return obj.total !== undefined || obj.daily !== undefined || obj.budget !== undefined;
+}
+
+export function parseStats(content: string): Stats {
+  const data = JSON.parse(content);
+
+  // Handle legacy format
+  if (isLegacyStats(data) && !isValidStats(data)) {
+    const legacy = data as LegacyStats;
+    return {
+      totalCharacters: legacy.total?.characters ?? 0,
+      totalMessages: legacy.total?.messages ?? 0,
+      dailyUsage: legacy.daily ?? [],
+      dailyBudget: legacy.budget?.dailyLimit,
+    };
+  }
+
+  if (!isValidStats(data)) {
+    throw new Error("Invalid stats file format");
+  }
+  return data;
+}
+
+// --- Lock file validation ---
+
+export interface LockFile {
+  pid: number;
+  reservedAt: string;
+}
+
+export function isValidLockFile(data: unknown): data is LockFile {
+  if (typeof data !== "object" || data === null) return false;
+
+  const obj = data as Record<string, unknown>;
+
+  return typeof obj.pid === "number" && typeof obj.reservedAt === "string";
+}
+
+export function parseLockFile(content: string): LockFile {
+  const data = JSON.parse(content);
+  if (!isValidLockFile(data)) {
+    throw new Error("Invalid lock file format");
+  }
+  return data;
+}
+
+// --- Default values for corrupted files ---
+
+export function defaultConfig(): Config {
+  return {};
+}
+
+export function defaultMessageQueue(): Message[] {
+  return [];
+}
+
+export function defaultStats(): Stats {
+  return { totalCharacters: 0, totalMessages: 0, dailyUsage: [] };
+}
