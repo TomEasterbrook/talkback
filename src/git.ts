@@ -21,11 +21,29 @@ sanitize() {
 
 const HOOKS = {
   "post-commit": `#!/bin/sh
-# Talkback: Announce commits
+# Talkback: Announce commits with conventional commit support
 ${SANITIZE_FUNC}
 MSG=$(git log -1 --pretty=%s 2>/dev/null || echo "commit")
 MSG=$(sanitize "$MSG")
-talkback "Committed: $MSG"
+
+# Parse conventional commit prefix (feat, fix, test, etc.)
+PREFIX=$(echo "$MSG" | sed -n 's/^\\([a-z]*\\)[(:].*/\\1/p')
+REST=$(echo "$MSG" | sed 's/^[a-z]*[(:][[:space:]]*//' | sed 's/^[^)]*)[[:space:]]*//')
+
+case "$PREFIX" in
+  feat)     talkback "New feature: $REST" ;;
+  fix)      talkback "Fixed: $REST" ;;
+  test)     talkback "Tests: $REST" ;;
+  ci)       talkback "CI: $REST" ;;
+  docs)     talkback "Documentation: $REST" ;;
+  style)    talkback "Style: $REST" ;;
+  refactor) talkback "Refactored: $REST" ;;
+  perf)     talkback "Performance: $REST" ;;
+  chore)    talkback "Chore: $REST" ;;
+  build)    talkback "Build: $REST" ;;
+  revert)   talkback "Reverted: $REST" ;;
+  *)        talkback "Committed: $MSG" ;;
+esac
 `,
 
   "post-checkout": `#!/bin/sh
