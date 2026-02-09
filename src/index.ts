@@ -5,15 +5,9 @@
  *
  * A CLI tool that speaks text using ElevenLabs text-to-speech.
  * Designed for AI coding assistants running in terminals.
- *
- * Usage:
- *   talkback Hello world           Speak a message
- *   talkback --beep success        Play a quick sound
- *   talkback setup                 Configure API key
- *   talkback voices                List available voices
- *   talkback stats                 View usage statistics
  */
 
+import { Command } from "commander";
 import { textToSpeech, type SpeechSpeed } from "./api.js";
 import { playAudio, playBeep, playVoiceSignature } from "./player.js";
 import { processForSpeech, detectSentiment } from "./text.js";
@@ -27,130 +21,22 @@ import { speakLocal, isLocalTTSAvailable, getLocalTTSStatus } from "./local-tts.
 import { getFromCache, saveToCache, clearCache, getCacheStats, type CacheKey } from "./cache.js";
 import { createProvider, getProviderNames, type TTSProvider, type ProviderName } from "./providers.js";
 
-// --- CLI Argument Parsing ---
+// --- CLI Options Interface ---
 
-interface Args {
-  command: string | null;
-  positional: string[];
-  voice: string | null;
+interface SpeakOptions {
+  voice?: string;
   speed: SpeechSpeed;
   maxLength: number;
-  beep: "success" | "error" | null;
-  noPrefix: boolean;
-  noSignature: boolean; // Skip voice signature tone
-  budget: number | "none" | null;
-  local: boolean; // Force local TTS
-  help: boolean;
+  beep?: "success" | "error";
+  local: boolean;
+  signature?: boolean; // --no-signature sets this to false
 }
 
-function parseArgs(): Args {
-  const args: Args = {
-    command: null,
-    positional: [],
-    voice: null,
-    speed: "normal",
-    maxLength: 500,
-    beep: null,
-    noPrefix: true, // Default: no "Alex says:" prefix
-    noSignature: false, // Default: play voice signature
-    budget: null,
-    local: false,
-    help: false,
-  };
-
-  const argv = process.argv.slice(2);
-  const commands = ["setup", "voices", "stats", "reserve", "release", "status", "git", "cache", "provider", "help"];
-
-  let i = 0;
-
-  // Check for command
-  if (argv[0] && !argv[0].startsWith("-") && commands.includes(argv[0])) {
-    args.command = argv[0];
-    i = 1;
-  }
-
-  // Parse remaining arguments
-  while (i < argv.length) {
-    const arg = argv[i];
-
-    if (arg === "-v" || arg === "--voice") {
-      args.voice = argv[++i];
-    } else if (arg === "--speed") {
-      const speed = argv[++i] as SpeechSpeed;
-      if (["fast", "normal", "slow"].includes(speed)) args.speed = speed;
-    } else if (arg === "-m" || arg === "--max-length") {
-      const len = parseInt(argv[++i], 10);
-      if (len > 0) args.maxLength = len;
-    } else if (arg === "-b" || arg === "--beep") {
-      const type = argv[++i];
-      if (type === "success" || type === "error") args.beep = type;
-    } else if (arg === "--no-prefix") {
-      args.noPrefix = true;
-    } else if (arg === "--no-signature") {
-      args.noSignature = true;
-    } else if (arg === "--local" || arg === "-l") {
-      args.local = true;
-    } else if (arg === "--budget") {
-      const val = argv[++i];
-      if (val === "none" || val === "off") {
-        args.budget = "none";
-      } else {
-        const num = parseInt(val, 10);
-        if (num > 0) args.budget = num;
-      }
-    } else if (arg === "-h" || arg === "--help") {
-      args.help = true;
-    } else if (!arg.startsWith("-")) {
-      args.positional.push(arg);
-    }
-
-    i++;
-  }
-
-  return args;
+interface StatsOptions {
+  budget?: string;
 }
 
 // --- Commands ---
-
-function showHelp(): void {
-  console.log(`
-Talkback - Voice for agentic coders
-
-Usage:
-  talkback <message>              Speak the message
-  talkback [command]              Run a command
-
-Commands:
-  setup                 Configure API key and voice accent
-  voices                List available voices
-  stats                 Show usage and cost statistics
-  cache                 Show cache stats (cache clear to clear)
-  provider              Manage TTS providers (list/set/add)
-  reserve               Reserve a voice for this session
-  release               Release your reserved voice
-  status                Show which voices are in use
-  git                   Manage git hooks (install/uninstall)
-
-Options:
-  -v, --voice <name>    Voice: ${VOICE_NAMES.join(", ")}
-  --speed <speed>       Speech speed: fast, normal, slow
-  -m, --max-length <n>  Truncate to n characters (default: 500)
-  -b, --beep <type>     Play sound instead: success, error
-  -l, --local           Use local TTS (macOS say / Linux espeak)
-  --no-signature        Skip the voice signature tone
-  -h, --help            Show this help
-
-Stats options:
-  --budget <n>          Set daily character limit
-  --budget none         Remove daily limit
-
-Examples:
-  talkback Build complete
-  talkback -v sam "Tests passed"
-  talkback --beep success
-  talkback stats --budget 10000
-`);
-}
 
 function showVoices(): void {
   const voices = getAllVoices();
@@ -217,12 +103,18 @@ async function handleRelease(voiceName?: string): Promise<void> {
   }
 }
 
-async function handleStats(args: Args): Promise<void> {
-  if (args.budget !== null) {
-    await setBudget(args.budget === "none" ? null : args.budget);
-    console.log(args.budget === "none"
-      ? "Budget removed"
-      : `Daily budget set to ${args.budget.toLocaleString()} characters`);
+async function handleStats(options: StatsOptions): Promise<void> {
+  if (options.budget) {
+    if (options.budget === "none" || options.budget === "off") {
+      await setBudget(null);
+      console.log("Budget removed");
+    } else {
+      const budget = parseInt(options.budget, 10);
+      if (budget > 0) {
+        await setBudget(budget);
+        console.log(`Daily budget set to ${budget.toLocaleString()} characters`);
+      }
+    }
   } else {
     console.log(await formatStats());
   }
@@ -431,23 +323,12 @@ async function configureProvider(name: ProviderName): Promise<void> {
 
 // --- Main speak functionality ---
 
-async function speak(args: Args): Promise<void> {
-  // Beep mode - no API needed
-  if (args.beep) {
-    await playBeep(args.beep);
-    return;
-  }
-
-  // Get text from arguments
-  const text = args.positional.join(" ").trim();
-  if (!text) {
-    showHelp();
-    return;
-  }
+async function speak(text: string, options: SpeakOptions): Promise<void> {
+  const maxLength = parseInt(String(options.maxLength), 10) || 500;
 
   // Truncate if needed
-  const truncated = text.length > args.maxLength
-    ? text.slice(0, args.maxLength - 3) + "..."
+  const truncated = text.length > maxLength
+    ? text.slice(0, maxLength - 3) + "..."
     : text;
 
   // Process text for natural speech (phonetics, code stripping)
@@ -461,8 +342,8 @@ async function speak(args: Args): Promise<void> {
     await playBeep(sentiment);
   }
 
-  // Resolve voice early (needed for signature)
-  const voiceName = args.voice ?? process.env.TALKBACK_VOICE ?? DEFAULT_VOICE;
+  // Resolve voice (needed for signature)
+  const voiceName = options.voice ?? process.env.TALKBACK_VOICE ?? DEFAULT_VOICE;
   const voice = getVoice(voiceName);
 
   if (!voice) {
@@ -472,13 +353,14 @@ async function speak(args: Args): Promise<void> {
   }
 
   // Play voice signature (short tone to identify the voice)
-  if (!args.noSignature) {
+  // Note: Commander uses --no-signature which sets signature=false
+  if (options.signature !== false) {
     await playVoiceSignature(voice.signatureHz);
   }
 
   // Local TTS mode (explicit --local flag)
-  if (args.local) {
-    await speakWithLocalTTS(processed, args.speed);
+  if (options.local) {
+    await speakWithLocalTTS(processed, options.speed);
     return;
   }
 
@@ -490,25 +372,20 @@ async function speak(args: Args): Promise<void> {
   if (!apiKey) {
     if (await isLocalTTSAvailable()) {
       console.error("No API key. Using local TTS.");
-      await speakWithLocalTTS(processed, args.speed);
+      await speakWithLocalTTS(processed, options.speed);
       return;
     }
     console.error("No API key. Run: talkback setup");
     process.exit(1);
   }
 
-  // Build final text with optional prefix
-  const finalText = args.noPrefix
-    ? processed
-    : `${voice.name} says: ${processed}`;
-
   // Check budget
-  const { allowed, remaining } = await checkBudget(finalText.length);
+  const { allowed, remaining } = await checkBudget(processed.length);
   if (!allowed) {
     // Try local fallback if enabled
     if (config.localFallback && (await isLocalTTSAvailable())) {
       console.error(`Budget exceeded. Using local TTS fallback.`);
-      await speakWithLocalTTS(processed, args.speed);
+      await speakWithLocalTTS(processed, options.speed);
       return;
     }
     console.error(`Daily budget exceeded (${remaining} chars remaining)`);
@@ -520,20 +397,20 @@ async function speak(args: Args): Promise<void> {
 
   // For non-ElevenLabs providers, use the provider abstraction directly
   if (providerName !== "elevenlabs") {
-    await speakWithProvider(providerName, config, processed, args.speed, config.localFallback ?? false);
+    await speakWithProvider(providerName, config, processed, options.speed, config.localFallback ?? false);
     return;
   }
 
   // Queue and play with ElevenLabs API, falling back to local if enabled
   await addToQueue({
-    text: finalText,
+    text: processed,
     voiceId: voice.elevenLabsId,
     voiceName: voiceName,
-    speed: args.speed,
+    speed: options.speed,
     queuedAt: new Date().toISOString(),
   });
 
-  await processQueue(apiKey, config.localFallback ?? false, processed, args.speed);
+  await processQueue(apiKey, config.localFallback ?? false, processed, options.speed);
 }
 
 async function speakWithProvider(
@@ -675,49 +552,105 @@ async function processQueue(
 
 // --- Entry point ---
 
-async function main(): Promise<void> {
-  await loadSavedAccent();
-  const args = parseArgs();
+// --- CLI Setup ---
 
-  if (args.help || args.command === "help") {
-    showHelp();
-    return;
-  }
+const program = new Command();
 
-  switch (args.command) {
-    case "setup":
-      await runSetup();
-      break;
-    case "voices":
-      showVoices();
-      break;
-    case "stats":
-      await handleStats(args);
-      break;
-    case "reserve":
-      await handleReserve();
-      break;
-    case "release":
-      await handleRelease(args.positional[0]);
-      break;
-    case "status":
-      await showStatus();
-      break;
-    case "git":
-      await handleGit(args.positional[0]);
-      break;
-    case "cache":
-      await handleCache(args.positional[0]);
-      break;
-    case "provider":
-      await handleProvider(args.positional[0], args.positional[1]);
-      break;
-    default:
-      await speak(args);
-  }
-}
+program
+  .name("talkback")
+  .description("Voice for agentic coders - text-to-speech CLI")
+  .version("1.0.0")
+  .argument("[message...]", "Message to speak")
+  .option("-v, --voice <name>", `Voice: ${VOICE_NAMES.join(", ")}`)
+  .option("--speed <speed>", "Speech speed: fast, normal, slow", "normal")
+  .option("-m, --max-length <n>", "Truncate to n characters", "500")
+  .option("-b, --beep <type>", "Play sound instead: success, error")
+  .option("-l, --local", "Use local TTS (macOS say / Linux espeak)", false)
+  .option("--no-signature", "Skip the voice signature tone")
+  .action(async (message: string[], options: SpeakOptions) => {
+    await loadSavedAccent();
+    if (message.length > 0) {
+      await speak(message.join(" "), options);
+    } else if (options.beep) {
+      await playBeep(options.beep);
+    } else {
+      program.help();
+    }
+  });
 
-main().catch((err) => {
+program
+  .command("setup")
+  .description("Configure API key and voice accent")
+  .action(async () => {
+    await runSetup();
+  });
+
+program
+  .command("voices")
+  .description("List available voices")
+  .action(async () => {
+    await loadSavedAccent();
+    showVoices();
+  });
+
+program
+  .command("stats")
+  .description("Show usage and cost statistics")
+  .option("--budget <n>", "Set daily character limit (use 'none' to remove)")
+  .action(async (options: StatsOptions) => {
+    await handleStats(options);
+  });
+
+program
+  .command("cache")
+  .description("Manage audio cache")
+  .argument("[action]", "Action: clear")
+  .action(async (action?: string) => {
+    await handleCache(action);
+  });
+
+program
+  .command("provider")
+  .description("Manage TTS providers")
+  .argument("[action]", "Action: list, set, add")
+  .argument("[name]", "Provider name")
+  .action(async (action?: string, name?: string) => {
+    await handleProvider(action, name);
+  });
+
+program
+  .command("reserve")
+  .description("Reserve a voice for this session")
+  .action(async () => {
+    await loadSavedAccent();
+    await handleReserve();
+  });
+
+program
+  .command("release")
+  .description("Release your reserved voice")
+  .argument("[voice]", "Voice name to release")
+  .action(async (voice?: string) => {
+    await handleRelease(voice);
+  });
+
+program
+  .command("status")
+  .description("Show which voices are in use")
+  .action(async () => {
+    await loadSavedAccent();
+    await showStatus();
+  });
+
+program
+  .command("git")
+  .description("Manage git hooks")
+  .argument("[action]", "Action: install, uninstall")
+  .action(async (action?: string) => {
+    await handleGit(action);
+  });
+
+program.parseAsync().catch((err) => {
   console.error(err.message);
   process.exit(1);
 });

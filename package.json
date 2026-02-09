@@ -12,7 +12,13 @@
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js"
   },
-  "keywords": ["tts", "elevenlabs", "cli", "voice", "speech"],
+  "keywords": [
+    "tts",
+    "elevenlabs",
+    "cli",
+    "voice",
+    "speech"
+  ],
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
@@ -21,5 +27,8 @@
     "@types/node": "^20.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "commander": "^14.0.3"
   }
 }
