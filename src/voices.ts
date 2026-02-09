@@ -17,19 +17,69 @@ export interface Voice {
 // Signature frequencies (musical notes for pleasant, distinct tones)
 // Alex: C5 (523Hz), Sam: E5 (659Hz), Jordan: G5 (784Hz), Casey: D5 (587Hz), Morgan: A4 (440Hz)
 const US_VOICES: Record<string, Voice> = {
-  alex: { name: "Alex", elevenLabsId: "pNInz6obpgDQGcFmaJgB", description: "Clear, neutral male", signatureHz: 523 },
-  sam: { name: "Sam", elevenLabsId: "21m00Tcm4TlvDq8ikWAM", description: "Warm female", signatureHz: 659 },
-  jordan: { name: "Jordan", elevenLabsId: "ErXwobaYiN019PkySvjV", description: "Energetic male", signatureHz: 784 },
-  casey: { name: "Casey", elevenLabsId: "MF3mGyEYCl7XYWbV9V6O", description: "Calm female", signatureHz: 587 },
-  morgan: { name: "Morgan", elevenLabsId: "VR6AewLTigWG4xSOukaG", description: "Deep male", signatureHz: 440 },
+  alex: {
+    name: "Alex",
+    elevenLabsId: "pNInz6obpgDQGcFmaJgB",
+    description: "Clear, neutral male",
+    signatureHz: 523,
+  },
+  sam: {
+    name: "Sam",
+    elevenLabsId: "21m00Tcm4TlvDq8ikWAM",
+    description: "Warm female",
+    signatureHz: 659,
+  },
+  jordan: {
+    name: "Jordan",
+    elevenLabsId: "ErXwobaYiN019PkySvjV",
+    description: "Energetic male",
+    signatureHz: 784,
+  },
+  casey: {
+    name: "Casey",
+    elevenLabsId: "MF3mGyEYCl7XYWbV9V6O",
+    description: "Calm female",
+    signatureHz: 587,
+  },
+  morgan: {
+    name: "Morgan",
+    elevenLabsId: "VR6AewLTigWG4xSOukaG",
+    description: "Deep male",
+    signatureHz: 440,
+  },
 };
 
 const BRITISH_VOICES: Record<string, Voice> = {
-  alex: { name: "Alex", elevenLabsId: "onwK4e9ZLuTAKqWW03F9", description: "Clear male", signatureHz: 523 },
-  sam: { name: "Sam", elevenLabsId: "XB0fDUnXU5powFXDhCwa", description: "Warm female", signatureHz: 659 },
-  jordan: { name: "Jordan", elevenLabsId: "JBFqnCBsd6RMkjVDRZzb", description: "Refined male", signatureHz: 784 },
-  casey: { name: "Casey", elevenLabsId: "pFZP5JQG7iQjIQuC4Bku", description: "Calm female", signatureHz: 587 },
-  morgan: { name: "Morgan", elevenLabsId: "IKne3meq5aSn9XLyUdCD", description: "Deep male", signatureHz: 440 },
+  alex: {
+    name: "Alex",
+    elevenLabsId: "onwK4e9ZLuTAKqWW03F9",
+    description: "Clear male",
+    signatureHz: 523,
+  },
+  sam: {
+    name: "Sam",
+    elevenLabsId: "XB0fDUnXU5powFXDhCwa",
+    description: "Warm female",
+    signatureHz: 659,
+  },
+  jordan: {
+    name: "Jordan",
+    elevenLabsId: "JBFqnCBsd6RMkjVDRZzb",
+    description: "Refined male",
+    signatureHz: 784,
+  },
+  casey: {
+    name: "Casey",
+    elevenLabsId: "pFZP5JQG7iQjIQuC4Bku",
+    description: "Calm female",
+    signatureHz: 587,
+  },
+  morgan: {
+    name: "Morgan",
+    elevenLabsId: "IKne3meq5aSn9XLyUdCD",
+    description: "Deep male",
+    signatureHz: 440,
+  },
 };
 
 const VOICE_SETS = { us: US_VOICES, british: BRITISH_VOICES };

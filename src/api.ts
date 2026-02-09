@@ -24,10 +24,7 @@ export interface TextToSpeechRequest {
   speed?: SpeechSpeed;
 }
 
-export async function textToSpeech(
-  apiKey: string,
-  request: TextToSpeechRequest
-): Promise<Buffer> {
+export async function textToSpeech(apiKey: string, request: TextToSpeechRequest): Promise<Buffer> {
   const { text, voiceId, speed = "normal" } = request;
   const url = `${ELEVENLABS_API}/text-to-speech/${voiceId}?output_format=${OUTPUT_FORMAT}`;
 

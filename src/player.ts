@@ -32,10 +32,17 @@ export async function playVoiceSignature(frequencyHz: number): Promise<void> {
   // Short, subtle tone to identify the voice (80ms, gentle fade)
   await runPlay([
     "-n",
-    "synth", "0.08",
-    "sine", String(frequencyHz),
-    "fade", "t", "0.01", "0.08", "0.02",
-    "vol", "0.3",
+    "synth",
+    "0.08",
+    "sine",
+    String(frequencyHz),
+    "fade",
+    "t",
+    "0.01",
+    "0.08",
+    "0.02",
+    "vol",
+    "0.3",
   ]);
 }
 
@@ -55,16 +62,22 @@ function runPlay(args: string[]): Promise<void> {
 
     process.on("error", (err) => {
       if ((err as NodeJS.ErrnoException).code === "ENOENT") {
-        reject(new Error(
-          "sox not found. Install with: brew install sox (macOS) or apt install sox (Linux)"
-        ));
+        reject(
+          new Error(
+            "sox not found. Install with: brew install sox (macOS) or apt install sox (Linux)"
+          )
+        );
       } else {
         reject(err);
       }
     });
 
     process.on("close", (code) => {
-      code === 0 ? resolve() : reject(new Error(`play exited with code ${code}`));
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`play exited with code ${code}`));
+      }
     });
   });
 }

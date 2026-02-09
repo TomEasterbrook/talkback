@@ -38,7 +38,8 @@ export function isValidConfig(data: unknown): data is Config {
   if (obj.apiKey !== undefined && typeof obj.apiKey !== "string") return false;
   if (obj.accent !== undefined && obj.accent !== "us" && obj.accent !== "british") return false;
   if (obj.localFallback !== undefined && typeof obj.localFallback !== "boolean") return false;
-  if (obj.provider !== undefined && !VALID_PROVIDERS.includes(obj.provider as ProviderName)) return false;
+  if (obj.provider !== undefined && !VALID_PROVIDERS.includes(obj.provider as ProviderName))
+    return false;
   if (obj.providers !== undefined && typeof obj.providers !== "object") return false;
 
   return true;

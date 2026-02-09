@@ -59,17 +59,15 @@ export async function detectLocalEngine(): Promise<LocalTTSEngine> {
 /**
  * Speak text using the local TTS engine.
  */
-export async function speakLocal(
-  text: string,
-  options: LocalTTSOptions = {}
-): Promise<void> {
+export async function speakLocal(text: string, options: LocalTTSOptions = {}): Promise<void> {
   const engine = await detectLocalEngine();
 
   if (!engine) {
     const os = platform();
-    const suggestion = os === "darwin"
-      ? "The 'say' command should be available by default on macOS"
-      : "Install espeak: apt install espeak-ng (Debian/Ubuntu) or dnf install espeak-ng (Fedora)";
+    const suggestion =
+      os === "darwin"
+        ? "The 'say' command should be available by default on macOS"
+        : "Install espeak: apt install espeak-ng (Debian/Ubuntu) or dnf install espeak-ng (Fedora)";
     throw new Error(`No local TTS engine found. ${suggestion}`);
   }
 

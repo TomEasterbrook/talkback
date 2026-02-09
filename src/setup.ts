@@ -110,9 +110,8 @@ export async function runSetup(): Promise<void> {
   if (existingConfig.apiKey) {
     const masked = existingConfig.apiKey.slice(0, 8) + "..." + existingConfig.apiKey.slice(-4);
     const keepExisting = await prompt(`Use existing key (${masked})? [Y/n] `);
-    apiKey = keepExisting.toLowerCase() === "n"
-      ? await prompt("Enter API key: ")
-      : existingConfig.apiKey;
+    apiKey =
+      keepExisting.toLowerCase() === "n" ? await prompt("Enter API key: ") : existingConfig.apiKey;
   } else {
     apiKey = await prompt("Enter API key: ");
   }

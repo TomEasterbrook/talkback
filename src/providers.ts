@@ -393,10 +393,7 @@ export function createGoogleProvider(apiKey: string): TTSProvider {
 
 // --- Provider Factory ---
 
-export function createProvider(
-  name: ProviderName,
-  config: ProviderConfig
-): TTSProvider | null {
+export function createProvider(name: ProviderName, config: ProviderConfig): TTSProvider | null {
   switch (name) {
     case "elevenlabs":
       if (config.elevenlabs?.apiKey) {

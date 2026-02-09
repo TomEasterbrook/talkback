@@ -56,9 +56,8 @@ export async function getFromCache(key: CacheKey): Promise<Buffer | null> {
 
   try {
     const audio = await readFile(path);
-    // Touch the file to update access time for LRU
-    const now = new Date();
-    await writeFile(path, audio); // This updates mtime
+    // Touch the file to update mtime for LRU
+    await writeFile(path, audio);
     return audio;
   } catch {
     return null;

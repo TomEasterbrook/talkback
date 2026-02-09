@@ -31,7 +31,9 @@ export async function recordUsage(characters: number): Promise<void> {
   await save(stats);
 }
 
-export async function checkBudget(characters: number): Promise<{ allowed: boolean; remaining: number }> {
+export async function checkBudget(
+  characters: number
+): Promise<{ allowed: boolean; remaining: number }> {
   const stats = await load();
 
   if (!stats.dailyBudget) {

@@ -21,86 +21,86 @@ let projectPhoneticsCachePath: string | null = null;
 // Technical terms that need phonetic spelling for clear pronunciation
 const GLOBAL_PHONETIC_MAP: Record<string, string> = {
   // Package managers & tools
-  "npm": "N P M",
-  "pnpm": "P N P M",
-  "yarn": "yarn",
-  "npx": "N P X",
-  "pip": "pip",
-  "pypi": "pie pie",
+  npm: "N P M",
+  pnpm: "P N P M",
+  yarn: "yarn",
+  npx: "N P X",
+  pip: "pip",
+  pypi: "pie pie",
 
   // Version control
-  "git": "git",
-  "github": "git hub",
-  "gitlab": "git lab",
+  git: "git",
+  github: "git hub",
+  gitlab: "git lab",
 
   // Languages & runtimes
-  "js": "javascript",
-  "ts": "typescript",
-  "py": "python",
-  "rb": "ruby",
-  "rs": "rust",
-  "golang": "go lang",
-  "nodejs": "node J S",
-  "deno": "dee no",
-  "bun": "bun",
+  js: "javascript",
+  ts: "typescript",
+  py: "python",
+  rb: "ruby",
+  rs: "rust",
+  golang: "go lang",
+  nodejs: "node J S",
+  deno: "dee no",
+  bun: "bun",
 
   // Kubernetes & containers
-  "k8s": "kubernetes",
-  "kubectl": "kube control",
-  "docker": "docker",
-  "podman": "pod man",
+  k8s: "kubernetes",
+  kubectl: "kube control",
+  docker: "docker",
+  podman: "pod man",
 
   // Cloud & infrastructure
-  "aws": "A W S",
-  "gcp": "G C P",
-  "cli": "C L I",
-  "api": "A P I",
-  "apis": "A P I s",
-  "url": "U R L",
-  "urls": "U R L s",
-  "sql": "sequel",
-  "nosql": "no sequel",
+  aws: "A W S",
+  gcp: "G C P",
+  cli: "C L I",
+  api: "A P I",
+  apis: "A P I s",
+  url: "U R L",
+  urls: "U R L s",
+  sql: "sequel",
+  nosql: "no sequel",
 
   // Common abbreviations
-  "config": "config",
-  "configs": "configs",
-  "env": "environment",
-  "dev": "dev",
-  "prod": "production",
-  "repo": "repo",
-  "repos": "repos",
-  "deps": "dependencies",
-  "auth": "auth",
-  "oauth": "oh auth",
-  "jwt": "J W T",
-  "json": "jason",
-  "yaml": "yammel",
-  "toml": "tom L",
-  "css": "C S S",
-  "html": "H T M L",
-  "http": "H T T P",
-  "https": "H T T P S",
-  "ssh": "S S H",
-  "ssl": "S S L",
-  "tls": "T L S",
+  config: "config",
+  configs: "configs",
+  env: "environment",
+  dev: "dev",
+  prod: "production",
+  repo: "repo",
+  repos: "repos",
+  deps: "dependencies",
+  auth: "auth",
+  oauth: "oh auth",
+  jwt: "J W T",
+  json: "jason",
+  yaml: "yammel",
+  toml: "tom L",
+  css: "C S S",
+  html: "H T M L",
+  http: "H T T P",
+  https: "H T T P S",
+  ssh: "S S H",
+  ssl: "S S L",
+  tls: "T L S",
 
   // Testing
-  "ci": "C I",
-  "cd": "C D",
-  "cicd": "C I C D",
-  "qa": "Q A",
+  ci: "C I",
+  cd: "C D",
+  cicd: "C I C D",
+  qa: "Q A",
 
   // Misc
-  "ui": "U I",
-  "ux": "U X",
-  "ide": "I D E",
-  "vscode": "V S code",
-  "vim": "vim",
-  "neovim": "neo vim",
-  "regex": "reg ex",
-  "stdout": "standard out",
-  "stderr": "standard error",
-  "stdin": "standard in",
+  ui: "U I",
+  ux: "U X",
+  ide: "I D E",
+  vscode: "V S code",
+  vim: "vim",
+  neovim: "neo vim",
+  regex: "reg ex",
+  stdout: "standard out",
+  stderr: "standard error",
+  stdin: "standard in",
 };
 
 // Patterns that suggest message sentiment
@@ -109,14 +109,8 @@ const PATTERNS = {
     /\b(success|succeeded|passed|complete|completed|done|finished|ready|built|deployed)\b/i,
     /✓|✔|👍|🎉|💚/,
   ],
-  error: [
-    /\b(error|failed|failure|exception|crashed|broken|fatal|critical)\b/i,
-    /✗|✘|❌|🔴|💔/,
-  ],
-  warning: [
-    /\b(warning|warn|deprecated|caution|attention|notice)\b/i,
-    /⚠️|🟡|🟠/,
-  ],
+  error: [/\b(error|failed|failure|exception|crashed|broken|fatal|critical)\b/i, /✗|✘|❌|🔴|💔/],
+  warning: [/\b(warning|warn|deprecated|caution|attention|notice)\b/i, /⚠️|🟡|🟠/],
 };
 
 export type Sentiment = "success" | "error" | "warning" | "neutral";
@@ -215,14 +209,16 @@ export function applyPhonetics(text: string): string {
  * Keeps the surrounding prose.
  */
 export function stripCode(text: string): string {
-  return text
-    // Remove fenced code blocks (```...```)
-    .replace(/```[\s\S]*?```/g, " code block ")
-    // Remove inline code (`...`)
-    .replace(/`[^`]+`/g, " code ")
-    // Clean up multiple spaces
-    .replace(/\s+/g, " ")
-    .trim();
+  return (
+    text
+      // Remove fenced code blocks (```...```)
+      .replace(/```[\s\S]*?```/g, " code block ")
+      // Remove inline code (`...`)
+      .replace(/`[^`]+`/g, " code ")
+      // Clean up multiple spaces
+      .replace(/\s+/g, " ")
+      .trim()
+  );
 }
 
 /**

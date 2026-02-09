@@ -9,19 +9,38 @@
 
 import { Command } from "commander";
 import { spawn } from "node:child_process";
-import { fileURLToPath } from "node:url";
 import { textToSpeech, type SpeechSpeed } from "./api.js";
 import { playAudio, playBeep, playVoiceSignature } from "./player.js";
 import { processForSpeech, detectSentiment } from "./text.js";
-import { getVoice, getVoiceDisplayName, getAllVoices, getAccent, DEFAULT_VOICE, VOICE_NAMES } from "./voices.js";
+import {
+  getVoice,
+  getVoiceDisplayName,
+  getAllVoices,
+  getAccent,
+  DEFAULT_VOICE,
+  VOICE_NAMES,
+} from "./voices.js";
 import { reserveVoice, releaseVoice, getVoiceStatuses } from "./locks.js";
-import { addToQueue, takeFromQueue, acquirePlaybackLock, releasePlaybackLock, type Message } from "./queue.js";
+import {
+  addToQueue,
+  takeFromQueue,
+  acquirePlaybackLock,
+  releasePlaybackLock,
+  type Message,
+} from "./queue.js";
 import { runSetup, getApiKey, loadSavedAccent, loadConfig } from "./setup.js";
-import { recordUsage, checkBudget, setBudget, formatStats, checkWarningThresholds, getBudgetUsage } from "./stats.js";
+import {
+  recordUsage,
+  checkBudget,
+  setBudget,
+  formatStats,
+  checkWarningThresholds,
+  getBudgetUsage,
+} from "./stats.js";
 import { installHooks, uninstallHooks, showHooksStatus } from "./git.js";
 import { speakLocal, isLocalTTSAvailable, getLocalTTSStatus } from "./local-tts.js";
 import { getFromCache, saveToCache, clearCache, getCacheStats, type CacheKey } from "./cache.js";
-import { createProvider, getProviderNames, type TTSProvider, type ProviderName } from "./providers.js";
+import { createProvider, getProviderNames, type ProviderName } from "./providers.js";
 
 // --- CLI Options Interface ---
 
@@ -58,9 +77,7 @@ async function showStatus(): Promise<void> {
   console.log("\nVoice reservations:\n");
   for (const s of statuses) {
     const name = getVoiceDisplayName(s.voice);
-    const status = s.available
-      ? "✓ available"
-      : `🔒 reserved (PID ${s.pid})`;
+    const status = s.available ? "✓ available" : `🔒 reserved (PID ${s.pid})`;
     console.log(`  ${name.padEnd(8)} ${status}`);
   }
   console.log();
@@ -189,7 +206,9 @@ async function handleProvider(subcommand?: string, value?: string): Promise<void
     }
 
     if (!isProviderConfigured(config, providerName)) {
-      console.error(`Provider ${providerName} not configured. Run: talkback provider add ${providerName}`);
+      console.error(
+        `Provider ${providerName} not configured. Run: talkback provider add ${providerName}`
+      );
       process.exit(1);
     }
 
@@ -211,10 +230,17 @@ async function handleProvider(subcommand?: string, value?: string): Promise<void
   console.log("\nRun 'talkback provider list' to see all providers\n");
 }
 
-function isProviderConfigured(config: Awaited<ReturnType<typeof loadConfig>>, name: ProviderName): boolean {
+function isProviderConfigured(
+  config: Awaited<ReturnType<typeof loadConfig>>,
+  name: ProviderName
+): boolean {
   // Legacy: check apiKey for elevenlabs
   if (name === "elevenlabs") {
-    return !!(config.apiKey || config.providers?.elevenlabs?.apiKey || process.env.ELEVENLABS_API_KEY);
+    return !!(
+      config.apiKey ||
+      config.providers?.elevenlabs?.apiKey ||
+      process.env.ELEVENLABS_API_KEY
+    );
   }
 
   // Check environment variables
@@ -329,9 +355,7 @@ async function speak(text: string, options: SpeakOptions): Promise<void> {
   const maxLength = parseInt(String(options.maxLength), 10) || 500;
 
   // Truncate if needed
-  const truncated = text.length > maxLength
-    ? text.slice(0, maxLength - 3) + "..."
-    : text;
+  const truncated = text.length > maxLength ? text.slice(0, maxLength - 3) + "..." : text;
 
   // Process text for natural speech (phonetics, code stripping)
   const processed = processForSpeech(truncated);
@@ -399,7 +423,13 @@ async function speak(text: string, options: SpeakOptions): Promise<void> {
 
   // For non-ElevenLabs providers, use the provider abstraction directly
   if (providerName !== "elevenlabs") {
-    await speakWithProvider(providerName, config, processed, options.speed, config.localFallback ?? false);
+    await speakWithProvider(
+      providerName,
+      config,
+      processed,
+      options.speed,
+      config.localFallback ?? false
+    );
     return;
   }
 
@@ -432,7 +462,9 @@ async function speakWithProvider(
       await speakWithLocalTTS(text, speed);
       return;
     }
-    console.error(`Provider ${providerName} not configured. Run: talkback provider add ${providerName}`);
+    console.error(
+      `Provider ${providerName} not configured. Run: talkback provider add ${providerName}`
+    );
     process.exit(1);
   }
 
@@ -468,15 +500,20 @@ async function speakWithProvider(
 
 function buildProviderConfig(config: Awaited<ReturnType<typeof loadConfig>>) {
   return {
-    elevenlabs: config.providers?.elevenlabs ?? (config.apiKey ? { apiKey: config.apiKey } : undefined) ??
+    elevenlabs:
+      config.providers?.elevenlabs ??
+      (config.apiKey ? { apiKey: config.apiKey } : undefined) ??
       (process.env.ELEVENLABS_API_KEY ? { apiKey: process.env.ELEVENLABS_API_KEY } : undefined),
-    openai: config.providers?.openai ??
+    openai:
+      config.providers?.openai ??
       (process.env.OPENAI_API_KEY ? { apiKey: process.env.OPENAI_API_KEY } : undefined),
-    azure: config.providers?.azure ??
+    azure:
+      config.providers?.azure ??
       (process.env.AZURE_SPEECH_KEY && process.env.AZURE_SPEECH_REGION
         ? { apiKey: process.env.AZURE_SPEECH_KEY, region: process.env.AZURE_SPEECH_REGION }
         : undefined),
-    aws: config.providers?.aws ??
+    aws:
+      config.providers?.aws ??
       (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.AWS_REGION
         ? {
             accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -484,7 +521,8 @@ function buildProviderConfig(config: Awaited<ReturnType<typeof loadConfig>>) {
             region: process.env.AWS_REGION,
           }
         : undefined),
-    google: config.providers?.google ??
+    google:
+      config.providers?.google ??
       (process.env.GOOGLE_API_KEY ? { apiKey: process.env.GOOGLE_API_KEY } : undefined),
   };
 }

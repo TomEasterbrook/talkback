@@ -5,7 +5,7 @@
  * git events like commits, pushes, and branch switches.
  */
 
-import { writeFile, unlink, chmod, readFile } from "node:fs/promises";
+import { writeFile, unlink, chmod, readFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { execSync } from "node:child_process";
@@ -84,11 +84,16 @@ function getHooksDir(): string | null {
   return root ? join(root, ".git", "hooks") : null;
 }
 
-export async function installHooks(hooks: HookName[] = Object.keys(HOOKS) as HookName[]): Promise<string[]> {
+export async function installHooks(
+  hooks: HookName[] = Object.keys(HOOKS) as HookName[]
+): Promise<string[]> {
   const hooksDir = getHooksDir();
   if (!hooksDir) {
     throw new Error("Not in a git repository");
   }
+
+  // Ensure hooks directory exists
+  await mkdir(hooksDir, { recursive: true });
 
   const installed: string[] = [];
 
@@ -133,14 +138,18 @@ export async function uninstallHooks(): Promise<string[]> {
 
     // Check if it's only our hook or mixed
     const lines = content.split("\n");
-    const ourLines = lines.filter(l => l.includes("Talkback") || l.includes("talkback") || l.startsWith("#!"));
+    const ourLines = lines.filter(
+      (l) => l.includes("Talkback") || l.includes("talkback") || l.startsWith("#!")
+    );
 
-    if (ourLines.length === lines.filter(l => l.trim()).length) {
+    if (ourLines.length === lines.filter((l) => l.trim()).length) {
       // It's entirely our hook, remove it
       await unlink(hookPath);
     } else {
       // Mixed hook, remove our parts
-      const cleaned = lines.filter(l => !l.includes("Talkback") && !l.includes("talkback")).join("\n");
+      const cleaned = lines
+        .filter((l) => !l.includes("Talkback") && !l.includes("talkback"))
+        .join("\n");
       await writeFile(hookPath, cleaned);
     }
 
