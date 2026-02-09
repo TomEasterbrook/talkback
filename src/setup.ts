@@ -10,17 +10,12 @@
 
 import { readFile, writeFile, mkdir, chmod } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { join } from "node:path";
-import { homedir } from "node:os";
 import { createInterface } from "node:readline";
 import { isApiKeyValid, textToSpeech } from "./api.js";
 import { isSoxInstalled, playAudio } from "./player.js";
 import { getAllVoices, setAccent, DEFAULT_VOICE, type Accent } from "./voices.js";
 import { parseConfig, defaultConfig, type Config } from "./validation.js";
-
-const TALKBACK_DIR = join(homedir(), ".talkback");
-const CONFIG_FILE = join(TALKBACK_DIR, "config.json");
-const CONFIG_FILE_MODE = 0o600; // Owner read/write only
+import { TALKBACK_DIR, CONFIG_FILE, CONFIG_FILE_MODE, DIR_MODE } from "./constants.js";
 
 export type { Config };
 
@@ -41,7 +36,7 @@ export async function loadConfig(): Promise<Config> {
 
 export async function saveConfig(config: Config): Promise<void> {
   if (!existsSync(TALKBACK_DIR)) {
-    await mkdir(TALKBACK_DIR, { recursive: true, mode: 0o700 });
+    await mkdir(TALKBACK_DIR, { recursive: true, mode: DIR_MODE });
   }
   await writeFile(CONFIG_FILE, JSON.stringify(config, null, 2), { mode: CONFIG_FILE_MODE });
   // Ensure permissions are correct even if file already existed

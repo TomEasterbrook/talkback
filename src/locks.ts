@@ -9,11 +9,9 @@
 import { readFile, writeFile, unlink, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { homedir } from "node:os";
 import { VOICE_NAMES } from "./voices.js";
 import { parseLockFile, type LockFile } from "./validation.js";
-
-const LOCKS_DIR = join(homedir(), ".talkback", "locks");
+import { LOCKS_DIR } from "./constants.js";
 
 export interface VoiceStatus {
   voice: string;

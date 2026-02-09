@@ -9,7 +9,12 @@
  * - google: Google Cloud TTS (multilingual)
  */
 
-import type { SpeechSpeed } from "./api.js";
+import {
+  API_TIMEOUT_MS,
+  SPEED_MULTIPLIERS,
+  getWhisperSettings,
+  type SpeechSpeed,
+} from "./constants.js";
 
 export type ProviderName = "elevenlabs" | "openai" | "azure" | "aws" | "google";
 
@@ -42,15 +47,6 @@ export interface ProviderConfig {
   google?: { apiKey: string };
 }
 
-const API_TIMEOUT_MS = 30000;
-
-// Speed multipliers (provider-specific)
-const SPEED_MULTIPLIERS: Record<SpeechSpeed, number> = {
-  fast: 1.2,
-  normal: 1.0,
-  slow: 0.8,
-};
-
 // --- ElevenLabs Provider ---
 
 export function createElevenLabsProvider(apiKey: string): TTSProvider {
@@ -75,9 +71,7 @@ export function createElevenLabsProvider(apiKey: string): TTSProvider {
       const whisper = options.whisper ?? false;
       const url = `${ELEVENLABS_API}/text-to-speech/${voice}?output_format=mp3_44100_128`;
 
-      // For whisper effect: lower stability creates breathier, softer sound
-      const stability = whisper ? 0.3 : 0.5;
-      const similarityBoost = whisper ? 0.5 : 0.75;
+      const { stability, similarityBoost } = getWhisperSettings(whisper);
 
       const response = await fetchWithTimeout(url, {
         method: "POST",

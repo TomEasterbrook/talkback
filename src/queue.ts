@@ -9,10 +9,9 @@
 import { readFile, writeFile, unlink, mkdir, open, FileHandle } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { homedir } from "node:os";
 import { parseMessageQueue, defaultMessageQueue, type Message, type Priority } from "./validation.js";
+import { TALKBACK_DIR } from "./constants.js";
 
-const TALKBACK_DIR = join(homedir(), ".talkback");
 const QUEUE_FILE = join(TALKBACK_DIR, "queue.json");
 const PLAYBACK_LOCK = join(TALKBACK_DIR, "play.lock");
 

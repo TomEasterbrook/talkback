@@ -5,18 +5,18 @@
  * https://elevenlabs.io/docs/api-reference/text-to-speech
  */
 
+import {
+  API_TIMEOUT_MS,
+  SPEED_MULTIPLIERS,
+  getWhisperSettings,
+  type SpeechSpeed,
+} from "./constants.js";
+
+export type { SpeechSpeed };
+
 const ELEVENLABS_API = "https://api.elevenlabs.io/v1";
 const MODEL = "eleven_turbo_v2_5";
 const OUTPUT_FORMAT = "mp3_44100_128";
-const API_TIMEOUT_MS = 30000; // 30 second timeout
-
-export type SpeechSpeed = "fast" | "normal" | "slow";
-
-const SPEED_MULTIPLIERS: Record<SpeechSpeed, number> = {
-  fast: 1.2,
-  normal: 1.0,
-  slow: 0.8,
-};
 
 export interface TextToSpeechRequest {
   text: string;
@@ -29,9 +29,7 @@ export async function textToSpeech(apiKey: string, request: TextToSpeechRequest)
   const { text, voiceId, speed = "normal", whisper = false } = request;
   const url = `${ELEVENLABS_API}/text-to-speech/${voiceId}?output_format=${OUTPUT_FORMAT}`;
 
-  // For whisper effect: lower stability creates breathier, softer sound
-  const stability = whisper ? 0.3 : 0.5;
-  const similarityBoost = whisper ? 0.5 : 0.75;
+  const { stability, similarityBoost } = getWhisperSettings(whisper);
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
@@ -109,9 +107,7 @@ export async function textToSpeechStream(
   const { text, voiceId, speed = "normal", whisper = false } = request;
   const url = `${ELEVENLABS_API}/text-to-speech/${voiceId}/stream?output_format=${OUTPUT_FORMAT}`;
 
-  // For whisper effect: lower stability creates breathier, softer sound
-  const stability = whisper ? 0.3 : 0.5;
-  const similarityBoost = whisper ? 0.5 : 0.75;
+  const { stability, similarityBoost } = getWhisperSettings(whisper);
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);

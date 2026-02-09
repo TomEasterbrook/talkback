@@ -15,9 +15,8 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { homedir } from "node:os";
+import { TALKBACK_DIR } from "./constants.js";
 
-const TALKBACK_DIR = join(homedir(), ".talkback");
 const THEME_FILE = join(TALKBACK_DIR, "theme.json");
 
 export type ThemeName = "default" | "minimal" | "retro" | "scifi" | "gentle";

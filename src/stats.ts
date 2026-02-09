@@ -8,10 +8,9 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { homedir } from "node:os";
 import { parseStats, defaultStats, type Stats, type DailyUsage } from "./validation.js";
+import { TALKBACK_DIR } from "./constants.js";
 
-const TALKBACK_DIR = join(homedir(), ".talkback");
 const STATS_FILE = join(TALKBACK_DIR, "stats.json");
 
 // ElevenLabs Turbo v2.5: ~$0.15 per 1000 characters

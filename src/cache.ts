@@ -11,11 +11,9 @@
 import { readFile, writeFile, mkdir, readdir, stat, unlink } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { homedir } from "node:os";
 import { createHash } from "node:crypto";
-import type { SpeechSpeed } from "./api.js";
-
-const CACHE_DIR = join(homedir(), ".talkback", "cache");
+import type { SpeechSpeed } from "./constants.js";
+import { CACHE_DIR } from "./constants.js";
 const MAX_CACHE_SIZE_MB = 50; // Max cache size in MB
 const MAX_CACHE_AGE_DAYS = 30; // Max age of cached files
 

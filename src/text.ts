@@ -10,9 +10,7 @@
 
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
-
-// Project config file name
-const PROJECT_CONFIG_FILE = ".talkback.json";
+import { PROJECT_CONFIG_FILE } from "./constants.js";
 
 // Cache for project phonetics (to avoid re-reading file on every call)
 let projectPhoneticsCache: Record<string, string> | null = null;
