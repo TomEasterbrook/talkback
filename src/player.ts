@@ -37,9 +37,65 @@ export async function playVoiceSignature(frequencyHz: number): Promise<void> {
 
 export async function isSoxInstalled(): Promise<boolean> {
   return new Promise((resolve) => {
-    const process = spawn("which", ["play"]);
-    process.on("close", (code) => resolve(code === 0));
-    process.on("error", () => resolve(false));
+    const proc = spawn("which", ["play"]);
+    proc.on("close", (code) => resolve(code === 0));
+    proc.on("error", () => resolve(false));
+  });
+}
+
+/**
+ * Play audio from a stream in real-time.
+ * Pipes chunks directly to sox for immediate playback.
+ */
+export async function playAudioStream(stream: ReadableStream<Uint8Array>): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // Spawn sox to play from stdin
+    const proc = spawn("play", ["-q", "-t", "mp3", "-"], {
+      stdio: ["pipe", "ignore", "ignore"],
+    });
+
+    proc.on("error", (err) => {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+        reject(
+          new Error(
+            "sox not found. Install with: brew install sox (macOS) or apt install sox (Linux)"
+          )
+        );
+      } else {
+        reject(err);
+      }
+    });
+
+    proc.on("close", (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`play exited with code ${code}`));
+      }
+    });
+
+    // Pipe stream to sox stdin
+    const reader = stream.getReader();
+
+    async function pump(): Promise<void> {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            proc.stdin?.end();
+            break;
+          }
+          if (value && proc.stdin?.writable) {
+            proc.stdin.write(Buffer.from(value));
+          }
+        }
+      } catch (err) {
+        proc.stdin?.end();
+        reject(err);
+      }
+    }
+
+    pump();
   });
 }
 

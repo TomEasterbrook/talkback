@@ -9,8 +9,8 @@
 
 import { Command } from "commander";
 import { spawn } from "node:child_process";
-import { textToSpeech, type SpeechSpeed } from "./api.js";
-import { playAudio, playBeep, playVoiceSignature } from "./player.js";
+import { textToSpeech, textToSpeechStream, type SpeechSpeed } from "./api.js";
+import { playAudio, playAudioStream, playBeep, playVoiceSignature } from "./player.js";
 import { processForSpeech, detectSentiment } from "./text.js";
 import {
   getVoice,
@@ -70,6 +70,7 @@ interface SpeakOptions {
   signature?: boolean; // --no-signature sets this to false
   summarize?: boolean; // AI-summarize long messages
   priority?: Priority; // Message priority (critical, high, normal, low)
+  stream?: boolean; // Stream audio for lower latency
 }
 
 interface StatsOptions {
@@ -468,6 +469,29 @@ async function speak(text: string, options: SpeakOptions): Promise<void> {
     return;
   }
 
+  // Streaming mode: bypass queue and play directly
+  if (options.stream) {
+    try {
+      const stream = await textToSpeechStream(apiKey, {
+        text: processed,
+        voiceId: voice.elevenLabsId,
+        speed: options.speed,
+      });
+      await playAudioStream(stream);
+      await recordUsage(processed.length);
+      await speakBudgetWarnings();
+    } catch (err) {
+      if (config.localFallback && (await isLocalTTSAvailable())) {
+        console.error(`Streaming error, using local TTS: ${(err as Error).message}`);
+        await speakWithLocalTTS(processed, options.speed);
+      } else {
+        console.error(`Error: ${(err as Error).message}`);
+        process.exit(1);
+      }
+    }
+    return;
+  }
+
   // Queue and play with ElevenLabs API, falling back to local if enabled
   await addToQueue({
     text: processed,
@@ -682,6 +706,7 @@ program
   .option("--no-signature", "Skip the voice signature tone")
   .option("-s, --summarize", "AI-summarize long messages (saves TTS costs)")
   .option("-p, --priority <level>", "Message priority: critical, high, normal, low", "normal")
+  .option("--stream", "Stream audio for lower perceived latency")
   .action(async (message: string[], options: SpeakOptions) => {
     // Always run in background - respawn and exit immediately
     if (!process.env.TALKBACK_SYNC) {
