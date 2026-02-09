@@ -15,7 +15,7 @@
  */
 
 import { textToSpeech, type SpeechSpeed } from "./api.js";
-import { playAudio, playBeep } from "./player.js";
+import { playAudio, playBeep, playVoiceSignature } from "./player.js";
 import { processForSpeech, detectSentiment } from "./text.js";
 import { getVoice, getVoiceDisplayName, getAllVoices, getAccent, DEFAULT_VOICE, VOICE_NAMES } from "./voices.js";
 import { reserveVoice, releaseVoice, getVoiceStatuses } from "./locks.js";
@@ -37,6 +37,7 @@ interface Args {
   maxLength: number;
   beep: "success" | "error" | null;
   noPrefix: boolean;
+  noSignature: boolean; // Skip voice signature tone
   budget: number | "none" | null;
   local: boolean; // Force local TTS
   help: boolean;
@@ -50,7 +51,8 @@ function parseArgs(): Args {
     speed: "normal",
     maxLength: 500,
     beep: null,
-    noPrefix: false,
+    noPrefix: true, // Default: no "Alex says:" prefix
+    noSignature: false, // Default: play voice signature
     budget: null,
     local: false,
     help: false,
@@ -84,6 +86,8 @@ function parseArgs(): Args {
       if (type === "success" || type === "error") args.beep = type;
     } else if (arg === "--no-prefix") {
       args.noPrefix = true;
+    } else if (arg === "--no-signature") {
+      args.noSignature = true;
     } else if (arg === "--local" || arg === "-l") {
       args.local = true;
     } else if (arg === "--budget") {
@@ -133,7 +137,7 @@ Options:
   -m, --max-length <n>  Truncate to n characters (default: 500)
   -b, --beep <type>     Play sound instead: success, error
   -l, --local           Use local TTS (macOS say / Linux espeak)
-  --no-prefix           Don't prefix with "Alex says:"
+  --no-signature        Skip the voice signature tone
   -h, --help            Show this help
 
 Stats options:
@@ -457,6 +461,21 @@ async function speak(args: Args): Promise<void> {
     await playBeep(sentiment);
   }
 
+  // Resolve voice early (needed for signature)
+  const voiceName = args.voice ?? process.env.TALKBACK_VOICE ?? DEFAULT_VOICE;
+  const voice = getVoice(voiceName);
+
+  if (!voice) {
+    console.error(`Unknown voice: ${voiceName}`);
+    console.error(`Available: ${VOICE_NAMES.join(", ")}`);
+    process.exit(1);
+  }
+
+  // Play voice signature (short tone to identify the voice)
+  if (!args.noSignature) {
+    await playVoiceSignature(voice.signatureHz);
+  }
+
   // Local TTS mode (explicit --local flag)
   if (args.local) {
     await speakWithLocalTTS(processed, args.speed);
@@ -475,16 +494,6 @@ async function speak(args: Args): Promise<void> {
       return;
     }
     console.error("No API key. Run: talkback setup");
-    process.exit(1);
-  }
-
-  // Resolve voice
-  const voiceName = args.voice ?? process.env.TALKBACK_VOICE ?? DEFAULT_VOICE;
-  const voice = getVoice(voiceName);
-
-  if (!voice) {
-    console.error(`Unknown voice: ${voiceName}`);
-    console.error(`Available: ${VOICE_NAMES.join(", ")}`);
     process.exit(1);
   }
 

@@ -28,6 +28,17 @@ export async function playBeep(type: "success" | "error"): Promise<void> {
   await runPlay(["-n", "synth", "0.15", "sine", frequency, "vol", "0.5"]);
 }
 
+export async function playVoiceSignature(frequencyHz: number): Promise<void> {
+  // Short, subtle tone to identify the voice (80ms, gentle fade)
+  await runPlay([
+    "-n",
+    "synth", "0.08",
+    "sine", String(frequencyHz),
+    "fade", "t", "0.01", "0.08", "0.02",
+    "vol", "0.3",
+  ]);
+}
+
 export async function isSoxInstalled(): Promise<boolean> {
   return new Promise((resolve) => {
     const process = spawn("which", ["play"]);
