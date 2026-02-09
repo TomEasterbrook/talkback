@@ -17,7 +17,7 @@ import { getVoice, getVoiceDisplayName, getAllVoices, getAccent, DEFAULT_VOICE, 
 import { reserveVoice, releaseVoice, getVoiceStatuses } from "./locks.js";
 import { addToQueue, takeFromQueue, acquirePlaybackLock, releasePlaybackLock, type Message } from "./queue.js";
 import { runSetup, getApiKey, loadSavedAccent, loadConfig } from "./setup.js";
-import { recordUsage, checkBudget, setBudget, formatStats } from "./stats.js";
+import { recordUsage, checkBudget, setBudget, formatStats, checkWarningThresholds, getBudgetUsage } from "./stats.js";
 import { installHooks, uninstallHooks, showHooksStatus } from "./git.js";
 import { speakLocal, isLocalTTSAvailable, getLocalTTSStatus } from "./local-tts.js";
 import { getFromCache, saveToCache, clearCache, getCacheStats, type CacheKey } from "./cache.js";
@@ -454,6 +454,7 @@ async function speakWithProvider(
     await saveToCache(cacheKey, audio);
     await playAudio(audio);
     await recordUsage(text.length);
+    await speakBudgetWarnings();
   } catch (err) {
     if (localFallback && (await isLocalTTSAvailable())) {
       console.error(`${provider.displayName} error, using local TTS: ${(err as Error).message}`);
@@ -497,6 +498,41 @@ async function speakWithLocalTTS(text: string, speed: SpeechSpeed): Promise<void
   await speakLocal(text, { speed });
 }
 
+/**
+ * Check and speak budget warnings if thresholds were crossed.
+ * Uses local TTS to avoid consuming more budget.
+ */
+async function speakBudgetWarnings(): Promise<void> {
+  const crossedThresholds = await checkWarningThresholds();
+
+  if (crossedThresholds.length === 0) {
+    return;
+  }
+
+  // Use the highest threshold crossed for the warning message
+  const highestThreshold = Math.max(...crossedThresholds);
+  const usage = await getBudgetUsage();
+
+  if (!usage) return;
+
+  let message: string;
+  if (highestThreshold >= 95) {
+    message = `Warning: You've used ${highestThreshold} percent of your daily budget. Only ${usage.remaining} characters remaining.`;
+  } else if (highestThreshold >= 90) {
+    message = `Budget alert: ${highestThreshold} percent of daily limit used.`;
+  } else {
+    message = `Budget notice: ${highestThreshold} percent of daily limit reached.`;
+  }
+
+  // Speak warning using local TTS (free, doesn't consume budget)
+  if (await isLocalTTSAvailable()) {
+    await speakLocal(message, { speed: "normal" });
+  } else {
+    // Fall back to console warning if local TTS unavailable
+    console.error(message);
+  }
+}
+
 async function processQueue(
   apiKey: string,
   localFallback: boolean = false,
@@ -537,6 +573,7 @@ async function processQueue(
 
         await playAudio(audio);
         await recordUsage(message.text.length);
+        await speakBudgetWarnings();
       } catch (err) {
         // API failed - try local fallback if enabled
         if (localFallback && fallbackText && (await isLocalTTSAvailable())) {

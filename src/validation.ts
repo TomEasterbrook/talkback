@@ -99,6 +99,7 @@ export interface DailyUsage {
   date: string;
   characters: number;
   messages: number;
+  warnedThresholds?: number[]; // Percentages already warned about (e.g., [75, 90])
 }
 
 export interface Stats {
@@ -113,11 +114,18 @@ function isValidDailyUsage(data: unknown): data is DailyUsage {
 
   const obj = data as Record<string, unknown>;
 
-  return (
-    typeof obj.date === "string" &&
-    typeof obj.characters === "number" &&
-    typeof obj.messages === "number"
-  );
+  // Check required fields
+  if (typeof obj.date !== "string") return false;
+  if (typeof obj.characters !== "number") return false;
+  if (typeof obj.messages !== "number") return false;
+
+  // Check optional warnedThresholds
+  if (obj.warnedThresholds !== undefined) {
+    if (!Array.isArray(obj.warnedThresholds)) return false;
+    if (!obj.warnedThresholds.every((t) => typeof t === "number")) return false;
+  }
+
+  return true;
 }
 
 export function isValidStats(data: unknown): data is Stats {

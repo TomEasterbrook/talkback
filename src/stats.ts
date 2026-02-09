@@ -53,6 +53,56 @@ export async function setBudget(limit: number | null): Promise<void> {
   await save(stats);
 }
 
+// Warning thresholds (percentages)
+const WARNING_THRESHOLDS = [75, 90, 95];
+
+/**
+ * Check if any budget warning thresholds have been crossed.
+ * Returns thresholds that need warnings (not yet warned about today).
+ * Marks those thresholds as warned.
+ */
+export async function checkWarningThresholds(): Promise<number[]> {
+  const stats = await load();
+
+  if (!stats.dailyBudget) {
+    return [];
+  }
+
+  const today = getToday(stats);
+  const usedPercent = (today.characters / stats.dailyBudget) * 100;
+  const warnedThresholds = today.warnedThresholds ?? [];
+
+  // Find thresholds we've crossed but haven't warned about
+  const newWarnings = WARNING_THRESHOLDS.filter(
+    (threshold) => usedPercent >= threshold && !warnedThresholds.includes(threshold)
+  );
+
+  if (newWarnings.length > 0) {
+    // Mark these thresholds as warned
+    today.warnedThresholds = [...warnedThresholds, ...newWarnings];
+    await save(stats);
+  }
+
+  return newWarnings;
+}
+
+/**
+ * Get current budget usage percentage.
+ */
+export async function getBudgetUsage(): Promise<{ percent: number; remaining: number } | null> {
+  const stats = await load();
+
+  if (!stats.dailyBudget) {
+    return null;
+  }
+
+  const today = getToday(stats);
+  const remaining = stats.dailyBudget - today.characters;
+  const percent = (today.characters / stats.dailyBudget) * 100;
+
+  return { percent, remaining: Math.max(0, remaining) };
+}
+
 export async function formatStats(): Promise<string> {
   const stats = await load();
   const today = getToday(stats);
