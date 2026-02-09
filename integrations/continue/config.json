@@ -1,0 +1,18 @@
+{
+  "$schema": "https://continue.dev/schemas/config.json",
+  "name": "talkback",
+  "description": "Voice notifications for Continue.dev",
+  "slashCommands": [
+    {
+      "name": "say",
+      "description": "Speak a message aloud",
+      "command": "npx talkback-cli"
+    },
+    {
+      "name": "beep",
+      "description": "Play a success/error beep",
+      "command": "npx talkback-cli --beep"
+    }
+  ],
+  "contextProviders": []
+}

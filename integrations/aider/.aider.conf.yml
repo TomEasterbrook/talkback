@@ -1,0 +1,22 @@
+# Talkback integration for Aider
+# Copy this to your project root or ~/.aider.conf.yml
+
+# Add talkback instructions to the system prompt
+extra-system-prompt: |
+  You have access to voice notifications via talkback CLI.
+
+  To speak a message: /run npx talkback-cli "message"
+  To play a beep: /run npx talkback-cli --beep success
+
+  Use voice notifications to:
+  - Announce task completion: /run npx talkback-cli "Done: description"
+  - Alert on errors: /run npx talkback-cli "Error: description" --priority critical
+  - Provide updates during long tasks
+
+  Options:
+  - --priority critical|high|normal|low
+  - --summarize (for long output)
+  - --voice alex|sam|jordan|casey|morgan
+
+# Auto-commit messages (aider will speak these)
+auto-commits: true
