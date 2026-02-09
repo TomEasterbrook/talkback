@@ -10,7 +10,7 @@
 import { Command } from "commander";
 import { spawn } from "node:child_process";
 import { textToSpeech, textToSpeechStream, type SpeechSpeed } from "./api.js";
-import { playAudio, playAudioStream, playBeep, playVoiceSignature } from "./player.js";
+import { playAudio, playAudioStream, playBeep, playVoiceSignature, getWhisperVolume } from "./player.js";
 import { processForSpeech, detectSentiment } from "./text.js";
 import {
   getVoice,
@@ -71,6 +71,7 @@ interface SpeakOptions {
   summarize?: boolean; // AI-summarize long messages
   priority?: Priority; // Message priority (critical, high, normal, low)
   stream?: boolean; // Stream audio for lower latency
+  whisper?: boolean; // Soft, breathy voice style
 }
 
 interface StatsOptions {
@@ -464,7 +465,8 @@ async function speak(text: string, options: SpeakOptions): Promise<void> {
       config,
       processed,
       options.speed,
-      config.localFallback ?? false
+      config.localFallback ?? false,
+      options.whisper ?? false
     );
     return;
   }
@@ -476,8 +478,11 @@ async function speak(text: string, options: SpeakOptions): Promise<void> {
         text: processed,
         voiceId: voice.elevenLabsId,
         speed: options.speed,
+        whisper: options.whisper,
       });
-      await playAudioStream(stream);
+      // ElevenLabs applies partial whisper via voice settings, but still reduce volume slightly
+      const volume = options.whisper ? getWhisperVolume() : undefined;
+      await playAudioStream(stream, { volume });
       await recordUsage(processed.length);
       await speakBudgetWarnings();
     } catch (err) {
@@ -500,9 +505,10 @@ async function speak(text: string, options: SpeakOptions): Promise<void> {
     speed: options.speed,
     queuedAt: new Date().toISOString(),
     priority: options.priority,
+    whisper: options.whisper,
   });
 
-  await processQueue(apiKey, config.localFallback ?? false, processed, options.speed);
+  await processQueue(apiKey, config.localFallback ?? false, processed, options.speed, options.whisper);
 }
 
 async function speakWithProvider(
@@ -510,7 +516,8 @@ async function speakWithProvider(
   config: Awaited<ReturnType<typeof loadConfig>>,
   text: string,
   speed: SpeechSpeed,
-  localFallback: boolean
+  localFallback: boolean,
+  whisper: boolean = false
 ): Promise<void> {
   // Build provider config from environment and saved config
   const providerConfig = buildProviderConfig(config);
@@ -528,23 +535,28 @@ async function speakWithProvider(
     process.exit(1);
   }
 
-  // Check cache first
+  // Check cache first (include whisper in cache key)
   const cacheKey: CacheKey = {
     text,
-    voiceId: `${providerName}:${provider.getDefaultVoice()}`,
+    voiceId: `${providerName}:${provider.getDefaultVoice()}${whisper ? ":whisper" : ""}`,
     speed,
   };
 
   const cached = await getFromCache(cacheKey);
   if (cached) {
-    await playAudio(cached);
+    // For cached whisper audio that wasn't native, still apply volume reduction
+    const volume = whisper ? getWhisperVolume() : undefined;
+    await playAudio(cached, { volume });
     return;
   }
 
   try {
-    const audio = await provider.synthesize(text, { speed });
-    await saveToCache(cacheKey, audio);
-    await playAudio(audio);
+    const result = await provider.synthesize(text, { speed, whisper });
+    await saveToCache(cacheKey, result.audio);
+
+    // Apply volume fallback if whisper was requested but provider doesn't support it natively
+    const volume = whisper && !result.nativeWhisper ? getWhisperVolume() : undefined;
+    await playAudio(result.audio, { volume });
     await recordUsage(text.length);
     await speakBudgetWarnings();
   } catch (err) {
@@ -635,7 +647,8 @@ async function processQueue(
   apiKey: string,
   localFallback: boolean = false,
   fallbackText?: string,
-  fallbackSpeed?: SpeechSpeed
+  fallbackSpeed?: SpeechSpeed,
+  fallbackWhisper?: boolean
 ): Promise<void> {
   if (!(await acquirePlaybackLock())) {
     return; // Another process is playing; our message is queued
@@ -644,9 +657,10 @@ async function processQueue(
   try {
     let message: Message | null;
     while ((message = await takeFromQueue())) {
+      const whisper = message.whisper ?? false;
       const cacheKey: CacheKey = {
         text: message.text,
-        voiceId: message.voiceId,
+        voiceId: `${message.voiceId}${whisper ? ":whisper" : ""}`,
         speed: message.speed,
       };
 
@@ -654,7 +668,9 @@ async function processQueue(
         // Check cache first
         const cached = await getFromCache(cacheKey);
         if (cached) {
-          await playAudio(cached);
+          // Apply volume reduction for whisper mode
+          const volume = whisper ? getWhisperVolume() : undefined;
+          await playAudio(cached, { volume });
           // Don't record usage for cached audio (already counted)
           continue;
         }
@@ -664,12 +680,15 @@ async function processQueue(
           text: message.text,
           voiceId: message.voiceId,
           speed: message.speed,
+          whisper,
         });
 
         // Save to cache before playing
         await saveToCache(cacheKey, audio);
 
-        await playAudio(audio);
+        // Apply volume reduction for whisper mode
+        const volume = whisper ? getWhisperVolume() : undefined;
+        await playAudio(audio, { volume });
         await recordUsage(message.text.length);
         await speakBudgetWarnings();
       } catch (err) {
@@ -707,6 +726,7 @@ program
   .option("-s, --summarize", "AI-summarize long messages (saves TTS costs)")
   .option("-p, --priority <level>", "Message priority: critical, high, normal, low", "normal")
   .option("--stream", "Stream audio for lower perceived latency")
+  .option("-w, --whisper", "Soft, breathy voice (native on Azure/AWS, volume fallback on others)")
   .action(async (message: string[], options: SpeakOptions) => {
     // Always run in background - respawn and exit immediately
     if (!process.env.TALKBACK_SYNC) {

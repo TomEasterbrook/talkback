@@ -22,11 +22,16 @@ export interface TextToSpeechRequest {
   text: string;
   voiceId: string;
   speed?: SpeechSpeed;
+  whisper?: boolean;
 }
 
 export async function textToSpeech(apiKey: string, request: TextToSpeechRequest): Promise<Buffer> {
-  const { text, voiceId, speed = "normal" } = request;
+  const { text, voiceId, speed = "normal", whisper = false } = request;
   const url = `${ELEVENLABS_API}/text-to-speech/${voiceId}?output_format=${OUTPUT_FORMAT}`;
+
+  // For whisper effect: lower stability creates breathier, softer sound
+  const stability = whisper ? 0.3 : 0.5;
+  const similarityBoost = whisper ? 0.5 : 0.75;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
@@ -42,8 +47,8 @@ export async function textToSpeech(apiKey: string, request: TextToSpeechRequest)
         text,
         model_id: MODEL,
         voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
+          stability,
+          similarity_boost: similarityBoost,
           speed: SPEED_MULTIPLIERS[speed],
         },
       }),
@@ -101,8 +106,12 @@ export async function textToSpeechStream(
   apiKey: string,
   request: TextToSpeechRequest
 ): Promise<ReadableStream<Uint8Array>> {
-  const { text, voiceId, speed = "normal" } = request;
+  const { text, voiceId, speed = "normal", whisper = false } = request;
   const url = `${ELEVENLABS_API}/text-to-speech/${voiceId}/stream?output_format=${OUTPUT_FORMAT}`;
+
+  // For whisper effect: lower stability creates breathier, softer sound
+  const stability = whisper ? 0.3 : 0.5;
+  const similarityBoost = whisper ? 0.5 : 0.75;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
@@ -118,8 +127,8 @@ export async function textToSpeechStream(
         text,
         model_id: MODEL,
         voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
+          stability,
+          similarity_boost: similarityBoost,
           speed: SPEED_MULTIPLIERS[speed],
         },
       }),

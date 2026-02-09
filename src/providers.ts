@@ -17,12 +17,18 @@ export interface TTSRequest {
   text: string;
   voice?: string; // Provider-specific voice ID
   speed?: SpeechSpeed;
+  whisper?: boolean; // Soft, breathy voice style
+}
+
+export interface TTSResult {
+  audio: Buffer;
+  nativeWhisper: boolean; // True if provider applied native whisper effect
 }
 
 export interface TTSProvider {
   name: ProviderName;
   displayName: string;
-  synthesize(text: string, options?: { voice?: string; speed?: SpeechSpeed }): Promise<Buffer>;
+  synthesize(text: string, options?: { voice?: string; speed?: SpeechSpeed; whisper?: boolean }): Promise<TTSResult>;
   validateCredentials(): Promise<boolean>;
   getDefaultVoice(): string;
   listVoices(): { id: string; name: string; description: string }[];
@@ -66,7 +72,12 @@ export function createElevenLabsProvider(apiKey: string): TTSProvider {
     async synthesize(text, options = {}) {
       const voice = options.voice ?? voices[0].id;
       const speed = options.speed ?? "normal";
+      const whisper = options.whisper ?? false;
       const url = `${ELEVENLABS_API}/text-to-speech/${voice}?output_format=mp3_44100_128`;
+
+      // For whisper effect: lower stability creates breathier, softer sound
+      const stability = whisper ? 0.3 : 0.5;
+      const similarityBoost = whisper ? 0.5 : 0.75;
 
       const response = await fetchWithTimeout(url, {
         method: "POST",
@@ -78,8 +89,8 @@ export function createElevenLabsProvider(apiKey: string): TTSProvider {
           text,
           model_id: MODEL,
           voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
+            stability,
+            similarity_boost: similarityBoost,
             speed: SPEED_MULTIPLIERS[speed],
           },
         }),
@@ -89,7 +100,10 @@ export function createElevenLabsProvider(apiKey: string): TTSProvider {
         throw new Error(await extractError(response, "ElevenLabs"));
       }
 
-      return Buffer.from(await response.arrayBuffer());
+      return {
+        audio: Buffer.from(await response.arrayBuffer()),
+        nativeWhisper: whisper, // ElevenLabs applies partial whisper via voice settings
+      };
     },
 
     async validateCredentials() {
@@ -134,6 +148,7 @@ export function createOpenAIProvider(apiKey: string): TTSProvider {
     async synthesize(text, options = {}) {
       const voice = options.voice ?? "alloy";
       const speed = SPEED_MULTIPLIERS[options.speed ?? "normal"];
+      const whisper = options.whisper ?? false;
 
       const response = await fetchWithTimeout(`${OPENAI_API}/audio/speech`, {
         method: "POST",
@@ -154,7 +169,10 @@ export function createOpenAIProvider(apiKey: string): TTSProvider {
         throw new Error(await extractError(response, "OpenAI"));
       }
 
-      return Buffer.from(await response.arrayBuffer());
+      return {
+        audio: Buffer.from(await response.arrayBuffer()),
+        nativeWhisper: false, // OpenAI doesn't support native whisper; use volume fallback
+      };
     },
 
     async validateCredentials() {
@@ -196,11 +214,18 @@ export function createAzureProvider(apiKey: string, region: string): TTSProvider
     async synthesize(text, options = {}) {
       const voice = options.voice ?? voices[0].id;
       const rate = options.speed === "fast" ? "+20%" : options.speed === "slow" ? "-20%" : "+0%";
+      const whisper = options.whisper ?? false;
+
+      // Build the inner content with optional whisper style
+      const escapedText = escapeXml(text);
+      const innerContent = whisper
+        ? `<mstts:express-as style="whispering">${escapedText}</mstts:express-as>`
+        : escapedText;
 
       const ssml = `
-        <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en-US">
+        <speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xmlns:mstts="https://www.w3.org/2001/mstts" xml:lang="en-US">
           <voice name="${voice}">
-            <prosody rate="${rate}">${escapeXml(text)}</prosody>
+            <prosody rate="${rate}">${innerContent}</prosody>
           </voice>
         </speak>
       `.trim();
@@ -222,7 +247,10 @@ export function createAzureProvider(apiKey: string, region: string): TTSProvider
         throw new Error(await extractError(response, "Azure"));
       }
 
-      return Buffer.from(await response.arrayBuffer());
+      return {
+        audio: Buffer.from(await response.arrayBuffer()),
+        nativeWhisper: whisper, // Azure supports native whisper via SSML
+      };
     },
 
     async validateCredentials() {
@@ -273,12 +301,18 @@ export function createAWSProvider(
 
     async synthesize(text, options = {}) {
       const voice = options.voice ?? "Joanna";
+      const whisper = options.whisper ?? false;
 
-      // Build the request
+      // Build the request - use SSML for whisper effect
       const endpoint = `https://polly.${region}.amazonaws.com/v1/speech`;
+      const speechText = whisper
+        ? `<speak><amazon:effect name="whispered">${escapeXml(text)}</amazon:effect></speak>`
+        : text;
+
       const body = JSON.stringify({
         OutputFormat: "mp3",
-        Text: text,
+        Text: speechText,
+        TextType: whisper ? "ssml" : "text",
         VoiceId: voice,
         Engine: "neural",
       });
@@ -307,7 +341,10 @@ export function createAWSProvider(
         throw new Error(await extractError(response, "AWS Polly"));
       }
 
-      return Buffer.from(await response.arrayBuffer());
+      return {
+        audio: Buffer.from(await response.arrayBuffer()),
+        nativeWhisper: whisper, // AWS Polly supports native whisper via SSML
+      };
     },
 
     async validateCredentials() {
@@ -367,7 +404,10 @@ export function createGoogleProvider(apiKey: string): TTSProvider {
       }
 
       const data = await response.json();
-      return Buffer.from(data.audioContent, "base64");
+      return {
+        audio: Buffer.from(data.audioContent, "base64"),
+        nativeWhisper: false, // Google doesn't support native whisper; use volume fallback
+      };
     },
 
     async validateCredentials() {

@@ -64,6 +64,7 @@ export interface Message {
   speed: SpeechSpeed;
   queuedAt: string;
   priority?: Priority;
+  whisper?: boolean;
 }
 
 const VALID_PRIORITIES: Priority[] = ["critical", "high", "normal", "low"];
@@ -83,6 +84,9 @@ function isValidMessage(data: unknown): data is Message {
 
   // Check optional priority field
   if (obj.priority !== undefined && !isValidPriority(obj.priority)) return false;
+
+  // Check optional whisper field
+  if (obj.whisper !== undefined && typeof obj.whisper !== "boolean") return false;
 
   return (
     typeof obj.text === "string" &&

@@ -23,7 +23,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 
 import { textToSpeech, type SpeechSpeed } from "./api.js";
-import { playAudio, playBeep } from "./player.js";
+import { playAudio, playBeep, getWhisperVolume } from "./player.js";
 import { processForSpeech, detectSentiment } from "./text.js";
 import { getVoice, getAllVoices, DEFAULT_VOICE } from "./voices.js";
 import { reserveVoice, releaseVoice, getVoiceStatuses } from "./locks.js";
@@ -60,8 +60,12 @@ server.tool(
       .enum(["critical", "high", "normal", "low"])
       .optional()
       .describe("Message priority - critical bypasses quiet hours"),
+    whisper: z
+      .boolean()
+      .optional()
+      .describe("Soft, breathy voice style (native on some providers, volume fallback on others)"),
   },
-  async ({ message, voice, speed, priority }) => {
+  async ({ message, voice, speed, priority, whisper }) => {
     try {
       // Check quiet hours (skip for critical priority)
       if (priority !== "critical" && (await isQuietTime())) {
@@ -84,11 +88,12 @@ server.tool(
 
       // Process text
       const processed = processForSpeech(message.slice(0, 500));
+      const useWhisper = whisper ?? false;
 
-      // Check cache first
+      // Check cache first (include whisper in cache key)
       const cacheKey: CacheKey = {
         text: processed,
-        voiceId: voiceConfig.elevenLabsId,
+        voiceId: `${voiceConfig.elevenLabsId}${useWhisper ? ":whisper" : ""}`,
         speed: speechSpeed,
       };
 
@@ -129,13 +134,16 @@ server.tool(
           text: processed,
           voiceId: voiceConfig.elevenLabsId,
           speed: speechSpeed,
+          whisper: useWhisper,
         });
 
         await saveToCache(cacheKey, audio);
         await recordUsage(processed.length);
       }
 
-      await playAudio(audio);
+      // Apply volume reduction for whisper mode (ElevenLabs applies partial whisper via voice settings)
+      const volume = useWhisper ? getWhisperVolume() : undefined;
+      await playAudio(audio, { volume });
 
       return {
         content: [{ type: "text", text: `Spoke: "${message.slice(0, 50)}${message.length > 50 ? "..." : ""}"` }],

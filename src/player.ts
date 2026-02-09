@@ -12,15 +12,32 @@ import { join } from "node:path";
 import { randomBytes } from "node:crypto";
 import { getCurrentTheme, soundSpecToSoxArgs } from "./themes.js";
 
-export async function playAudio(audioBuffer: Buffer): Promise<void> {
+// Volume level for whisper fallback (when provider doesn't support native whisper)
+const WHISPER_VOLUME = 0.35;
+
+export async function playAudio(audioBuffer: Buffer, options?: { volume?: number }): Promise<void> {
   const tempFile = join(tmpdir(), `talkback-${randomBytes(8).toString("hex")}.mp3`);
 
   try {
     await writeFile(tempFile, audioBuffer);
-    await runPlay(["-q", tempFile]);
+    const args = ["-q", tempFile];
+
+    // Apply volume adjustment if specified
+    if (options?.volume !== undefined) {
+      args.push("vol", String(options.volume));
+    }
+
+    await runPlay(args);
   } finally {
     await unlink(tempFile).catch(() => {});
   }
+}
+
+/**
+ * Get the whisper fallback volume level.
+ */
+export function getWhisperVolume(): number {
+  return WHISPER_VOLUME;
 }
 
 export async function playBeep(type: "success" | "error"): Promise<void> {
@@ -47,10 +64,19 @@ export async function isSoxInstalled(): Promise<boolean> {
  * Play audio from a stream in real-time.
  * Pipes chunks directly to sox for immediate playback.
  */
-export async function playAudioStream(stream: ReadableStream<Uint8Array>): Promise<void> {
+export async function playAudioStream(
+  stream: ReadableStream<Uint8Array>,
+  options?: { volume?: number }
+): Promise<void> {
   return new Promise((resolve, reject) => {
+    // Build sox args with optional volume
+    const args = ["-q", "-t", "mp3", "-"];
+    if (options?.volume !== undefined) {
+      args.push("vol", String(options.volume));
+    }
+
     // Spawn sox to play from stdin
-    const proc = spawn("play", ["-q", "-t", "mp3", "-"], {
+    const proc = spawn("play", args, {
       stdio: ["pipe", "ignore", "ignore"],
     });
 
