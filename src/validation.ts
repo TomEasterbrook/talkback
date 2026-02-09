@@ -55,22 +55,34 @@ export function parseConfig(content: string): Config {
 
 // --- Queue message validation ---
 
+export type Priority = "critical" | "high" | "normal" | "low";
+
 export interface Message {
   text: string;
   voiceId: string;
   voiceName: string;
   speed: SpeechSpeed;
   queuedAt: string;
+  priority?: Priority;
 }
+
+const VALID_PRIORITIES: Priority[] = ["critical", "high", "normal", "low"];
 
 function isValidSpeechSpeed(value: unknown): value is SpeechSpeed {
   return value === "fast" || value === "normal" || value === "slow";
+}
+
+function isValidPriority(value: unknown): value is Priority {
+  return VALID_PRIORITIES.includes(value as Priority);
 }
 
 function isValidMessage(data: unknown): data is Message {
   if (typeof data !== "object" || data === null) return false;
 
   const obj = data as Record<string, unknown>;
+
+  // Check optional priority field
+  if (obj.priority !== undefined && !isValidPriority(obj.priority)) return false;
 
   return (
     typeof obj.text === "string" &&

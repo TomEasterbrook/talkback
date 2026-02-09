@@ -10,7 +10,7 @@ import { readFile, writeFile, unlink, mkdir, open, FileHandle } from "node:fs/pr
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { parseMessageQueue, defaultMessageQueue, type Message } from "./validation.js";
+import { parseMessageQueue, defaultMessageQueue, type Message, type Priority } from "./validation.js";
 
 const TALKBACK_DIR = join(homedir(), ".talkback");
 const QUEUE_FILE = join(TALKBACK_DIR, "queue.json");
@@ -18,12 +18,33 @@ const PLAYBACK_LOCK = join(TALKBACK_DIR, "play.lock");
 
 export type { Message };
 
+// Priority order (lower number = higher priority)
+const PRIORITY_ORDER: Record<Priority, number> = {
+  critical: 0,
+  high: 1,
+  normal: 2,
+  low: 3,
+};
+
 // --- Queue operations ---
 
 export async function addToQueue(message: Message): Promise<void> {
   await ensureDir();
   const queue = await readQueue();
-  queue.push(message);
+
+  // Insert based on priority (higher priority = earlier in queue)
+  const msgPriority = PRIORITY_ORDER[message.priority ?? "normal"];
+  let insertIndex = queue.length;
+
+  for (let i = 0; i < queue.length; i++) {
+    const existingPriority = PRIORITY_ORDER[queue[i].priority ?? "normal"];
+    if (msgPriority < existingPriority) {
+      insertIndex = i;
+      break;
+    }
+  }
+
+  queue.splice(insertIndex, 0, message);
   await writeFile(QUEUE_FILE, JSON.stringify(queue, null, 2));
 }
 

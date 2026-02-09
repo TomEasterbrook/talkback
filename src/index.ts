@@ -45,6 +45,8 @@ import { summarizeText, isSummarizationAvailable, getSummaryProviderName } from 
 
 // --- CLI Options Interface ---
 
+import type { Priority } from "./validation.js";
+
 interface SpeakOptions {
   voice?: string;
   speed: SpeechSpeed;
@@ -53,6 +55,7 @@ interface SpeakOptions {
   local: boolean;
   signature?: boolean; // --no-signature sets this to false
   summarize?: boolean; // AI-summarize long messages
+  priority?: Priority; // Message priority (critical, high, normal, low)
 }
 
 interface StatsOptions {
@@ -453,6 +456,7 @@ async function speak(text: string, options: SpeakOptions): Promise<void> {
     voiceName: voiceName,
     speed: options.speed,
     queuedAt: new Date().toISOString(),
+    priority: options.priority,
   });
 
   await processQueue(apiKey, config.localFallback ?? false, processed, options.speed);
@@ -658,6 +662,7 @@ program
   .option("-l, --local", "Use local TTS (macOS say / Linux espeak)", false)
   .option("--no-signature", "Skip the voice signature tone")
   .option("-s, --summarize", "AI-summarize long messages (saves TTS costs)")
+  .option("-p, --priority <level>", "Message priority: critical, high, normal, low", "normal")
   .action(async (message: string[], options: SpeakOptions) => {
     // Always run in background - respawn and exit immediately
     if (!process.env.TALKBACK_SYNC) {
