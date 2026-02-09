@@ -10,10 +10,25 @@ import type { SpeechSpeed } from "./api.js";
 
 // --- Config validation ---
 
-export interface Config {
-  apiKey?: string;
-  accent?: "us" | "british";
+export type ProviderName = "elevenlabs" | "openai" | "azure" | "aws" | "google";
+
+export interface ProviderCredentials {
+  elevenlabs?: { apiKey: string };
+  openai?: { apiKey: string };
+  azure?: { apiKey: string; region: string };
+  aws?: { accessKeyId: string; secretAccessKey: string; region: string };
+  google?: { apiKey: string };
 }
+
+export interface Config {
+  apiKey?: string; // Legacy: ElevenLabs API key
+  accent?: "us" | "british";
+  localFallback?: boolean; // Use local TTS when API fails or budget exceeded
+  provider?: ProviderName; // Active TTS provider
+  providers?: ProviderCredentials; // Provider-specific credentials
+}
+
+const VALID_PROVIDERS: ProviderName[] = ["elevenlabs", "openai", "azure", "aws", "google"];
 
 export function isValidConfig(data: unknown): data is Config {
   if (typeof data !== "object" || data === null) return false;
@@ -22,6 +37,9 @@ export function isValidConfig(data: unknown): data is Config {
 
   if (obj.apiKey !== undefined && typeof obj.apiKey !== "string") return false;
   if (obj.accent !== undefined && obj.accent !== "us" && obj.accent !== "british") return false;
+  if (obj.localFallback !== undefined && typeof obj.localFallback !== "boolean") return false;
+  if (obj.provider !== undefined && !VALID_PROVIDERS.includes(obj.provider as ProviderName)) return false;
+  if (obj.providers !== undefined && typeof obj.providers !== "object") return false;
 
   return true;
 }
