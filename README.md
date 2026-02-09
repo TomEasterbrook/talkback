@@ -4,23 +4,147 @@
 
 Designed for AI coding assistants running in terminals. When you're running multiple coding sessions, audio feedback lets you know what's happening without switching windows.
 
+## Install
+
+```bash
+# Via npx (no install needed)
+npx talkback-cli "Hello world"
+
+# Or install globally
+npm install -g talkback-cli
+talkback "Hello world"
+
+# Or via Homebrew
+brew tap YOUR_USERNAME/talkback
+brew install talkback
+```
+
 ## Quick Start
 
 ```bash
-# Install dependencies
-npm install
-
-# Build
-npm run build
-
-# Link for global use
-npm link
-
 # Configure your API key
 talkback setup
 
 # Speak!
-talkback Build complete
+talkback "Build complete"
+
+# Quick beeps (no API cost)
+talkback --beep success
+talkback --beep error
+```
+
+## AI Agent Integration
+
+Talkback works with all major AI coding assistants:
+
+| Agent | Integration | Setup |
+|-------|-------------|-------|
+| **Claude Code** | MCP Server (native) | [Setup →](#claude-code-mcp) |
+| **Cursor** | .cursorrules | [Setup →](#cursor) |
+| **Continue.dev** | Slash commands | [Setup →](#continuedev) |
+| **Aider** | Config file | [Setup →](#aider) |
+| **Any agent** | CLI via npx | `npx talkback-cli "msg"` |
+
+### Claude Code (MCP)
+
+Add to `~/.claude/claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "talkback": {
+      "command": "npx",
+      "args": ["talkback-cli", "mcp"]
+    }
+  }
+}
+```
+
+Claude Code gets native tools: `speak`, `beep`, `reserve_voice`, `release_voice`, `voice_status`, `list_voices`.
+
+### Cursor
+
+Copy `.cursorrules` to your project:
+
+```bash
+curl -o .cursorrules https://raw.githubusercontent.com/YOUR_USERNAME/talkback/main/integrations/cursor/.cursorrules
+```
+
+### Continue.dev
+
+Add custom commands to `~/.continue/config.json`:
+
+```json
+{
+  "customCommands": [{
+    "name": "say",
+    "description": "Speak a message",
+    "prompt": "Run: npx talkback-cli \"{{{ input }}}\""
+  }]
+}
+```
+
+### Aider
+
+Copy config to your project or home:
+
+```bash
+curl -o .aider.conf.yml https://raw.githubusercontent.com/YOUR_USERNAME/talkback/main/integrations/aider/.aider.conf.yml
+```
+
+## Features
+
+### AI Summarization
+
+Summarize long output before speaking — saves up to 90% on TTS costs:
+
+```bash
+talkback "$(cat build.log)" --summarize
+```
+
+Uses OpenAI/Anthropic/Groq to condense verbose output into a brief spoken summary.
+
+### Streaming TTS
+
+Start playback before generation completes — lower perceived latency:
+
+```bash
+talkback "This is a longer message that streams" --stream
+```
+
+### Priority Queue
+
+Urgent messages jump ahead; critical bypasses quiet hours:
+
+```bash
+talkback "Tests failed!" --priority critical
+talkback "Build starting" --priority low
+```
+
+Levels: `critical`, `high`, `normal`, `low`
+
+### Quiet Hours
+
+Silence notifications during meetings:
+
+```bash
+talkback quiet 9am-10am,2pm-3pm    # Set quiet hours
+talkback quiet off                  # Disable
+talkback quiet                      # Show status
+```
+
+Critical priority messages still play during quiet hours.
+
+### Sound Themes
+
+Customize notification sounds:
+
+```bash
+talkback theme              # List themes
+talkback theme retro        # 8-bit bleeps
+talkback theme scifi        # Futuristic tones
+talkback theme minimal      # Subtle sounds
+talkback theme gentle       # Soft, calm
 ```
 
 ## Usage
@@ -42,14 +166,11 @@ talkback --speed slow "Let me explain"
 
 # Use local TTS (free, works offline)
 talkback --local "No API needed"
-
 ```
 
-Talkback always returns immediately (~50ms) while audio plays in the background - perfect for agents that don't want to block.
+Talkback always returns immediately (~50ms) while audio plays in the background.
 
 ## TTS Providers
-
-Talkback supports multiple text-to-speech providers:
 
 | Provider | Description |
 |----------|-------------|
@@ -60,107 +181,51 @@ Talkback supports multiple text-to-speech providers:
 | **google** | Google Cloud TTS, multilingual |
 
 ```bash
-# List available providers
-talkback provider list
-
-# Add a new provider
-talkback provider add openai
-
-# Switch providers
-talkback provider set openai
+talkback provider list          # List available
+talkback provider add openai    # Configure
+talkback provider set openai    # Switch
 ```
 
 ### Local TTS Fallback
 
-When the API is unavailable or you're over budget, Talkback can fall back to local TTS:
+When API is unavailable or over budget:
 
-- **macOS**: Uses built-in `say` command
-- **Linux**: Uses `espeak` or `espeak-ng`
+- **macOS**: Built-in `say` command
+- **Linux**: `espeak` or `espeak-ng`
 
 ```bash
-# Force local TTS
 talkback --local "This uses system TTS"
-
-# Enable automatic fallback in config
-# (falls back when API fails or budget exceeded)
 ```
 
 ## Voices
 
-Five friendly voice names, available in US or British accents:
+Five voices, available in US or British accents:
 
-| Name   | Description          | Signature |
-|--------|---------------------|-----------|
-| alex   | Clear, neutral (default) | C note |
-| sam    | Warm female          | E note |
-| jordan | Energetic male       | G note |
-| casey  | Calm female          | D note |
-| morgan | Deep male            | A note |
+| Name | Description | Signature |
+|------|-------------|-----------|
+| alex | Clear, neutral (default) | C note |
+| sam | Warm female | E note |
+| jordan | Energetic male | G note |
+| casey | Calm female | D note |
+| morgan | Deep male | A note |
 
-Each voice has a unique musical signature tone (a brief note before speaking) so you can identify which voice is speaking without verbal prefixes.
+Each voice has a unique musical signature tone for identification.
 
 ```bash
-# List voices
-talkback voices
-
-# Change accent
-talkback setup
-
-# Skip the signature tone
-talkback --no-signature "Just the message"
+talkback voices                    # List voices
+talkback setup                     # Change accent
+talkback --no-signature "msg"      # Skip tone
 ```
 
 ## Multi-Session Support
 
-When running multiple AI coding sessions, reserve different voices so you can tell them apart:
+Reserve different voices for multiple AI sessions:
 
 ```bash
-# At session start
-export TALKBACK_VOICE=$(talkback reserve)
-
-# All messages now use your reserved voice
-talkback "Working on frontend"
-
-# At session end
-talkback release
-
-# Check what's in use
-talkback status
-```
-
-## Audio Caching
-
-Talkback caches TTS audio locally to reduce API calls and latency:
-
-```bash
-# View cache statistics
-talkback cache
-
-# Clear the cache
-talkback cache clear
-```
-
-- Cache location: `~/.talkback/cache/`
-- Max size: 50 MB (auto-cleanup)
-- Max age: 30 days
-- Repeated phrases play instantly from cache
-
-## Cost Control
-
-ElevenLabs and other providers charge per character. Talkback helps you manage costs:
-
-```bash
-# View usage statistics
-talkback stats
-
-# Set a daily budget (in characters)
-talkback stats --budget 10000
-
-# Remove budget
-talkback stats --budget none
-
-# Messages auto-truncate at 500 chars (configurable)
-talkback -m 100 "This long message will be cut..."
+export TALKBACK_VOICE=$(talkback reserve)   # At session start
+talkback "Working on frontend"               # Uses reserved voice
+talkback release                             # At session end
+talkback status                              # Check reservations
 ```
 
 ## Commands
@@ -176,6 +241,8 @@ talkback -m 100 "This long message will be cut..."
 | `release` | Release your reserved voice |
 | `status` | Show voice reservations |
 | `git` | Manage git hooks |
+| `quiet` | Set quiet hours |
+| `theme` | Set sound theme |
 
 ## Options
 
@@ -186,60 +253,61 @@ talkback -m 100 "This long message will be cut..."
 | `-m, --max-length <n>` | Truncate messages (default: 500) |
 | `-b, --beep <type>` | Quick sound: success, error |
 | `-l, --local` | Use local TTS instead of API |
+| `-s, --summarize` | AI-summarize long messages |
+| `-p, --priority <level>` | critical, high, normal, low |
+| `--stream` | Stream audio for lower latency |
 | `--no-signature` | Skip the voice signature tone |
-| `-V, --version` | Show version number |
 
-## Requirements
-
-- Node.js 18+
-- [sox](http://sox.sourceforge.net/) for audio playback
-- API key for your chosen provider (or use local TTS)
+## Cost Control
 
 ```bash
-# Install sox
-brew install sox        # macOS
-apt install sox         # Linux
-choco install sox       # Windows
-
-# For local TTS fallback on Linux
-apt install espeak-ng   # Debian/Ubuntu
-dnf install espeak-ng   # Fedora
+talkback stats                    # View usage
+talkback stats --budget 10000     # Set daily limit (chars)
+talkback stats --budget none      # Remove limit
 ```
 
-## Configuration
+- Messages auto-truncate at 500 chars (configurable with `-m`)
+- Caching reduces repeat API calls
+- `--summarize` reduces long messages by up to 90%
+- Budget warnings at 75%, 90%, 95%
 
-Config is stored in `~/.talkback/`:
+## Audio Caching
 
+```bash
+talkback cache          # View stats
+talkback cache clear    # Clear cache
 ```
-~/.talkback/
-├── config.json    API keys and preferences
-├── stats.json     Usage statistics
-├── cache/         Cached audio files
-├── locks/         Voice reservations
-└── queue.json     Message queue
+
+- Location: `~/.talkback/cache/`
+- Max size: 50 MB (auto-cleanup)
+- Max age: 30 days
+
+## Git Integration
+
+```bash
+talkback git            # Check status
+talkback git install    # Install hooks
+talkback git uninstall  # Remove hooks
 ```
+
+Announces commits, branch switches, pushes, and merges.
 
 ## Smart Features
 
 ### Project-Specific Phonetics
 
-Add a `.talkback.json` file to any project for custom pronunciations:
+Add `.talkback.json` to any project:
 
 ```json
 {
   "phonetics": {
     "myapp": "my app",
-    "kubectl": "cube control",
-    "nginx": "engine x"
+    "kubectl": "cube control"
   }
 }
 ```
 
-These override the built-in phonetics for that project directory.
-
-### Built-in Phonetic Corrections
-
-Technical terms are pronounced clearly:
+### Built-in Phonetics
 
 | You type | Spoken as |
 |----------|-----------|
@@ -247,116 +315,69 @@ Technical terms are pronounced clearly:
 | kubectl | "kube control" |
 | k8s | "kubernetes" |
 | json | "jason" |
-| sql | "sequel" |
 | api | "A P I" |
-
-### Code-Aware Parsing
-
-Code blocks are stripped for cleaner speech:
-
-```bash
-# Input with code block
-talkback "Fixed the bug: \`return null\` was wrong"
-
-# Speaks: "Fixed the bug: code was wrong"
-```
 
 ### Auto-Detection
 
-Errors and successes are detected automatically and prefixed with a beep:
+Errors and successes are detected and prefixed with appropriate beeps.
+
+## Requirements
+
+- Node.js 18+
+- [sox](http://sox.sourceforge.net/) for audio playback
+- API key (or use local TTS)
 
 ```bash
-talkback "Build failed with 3 errors"   # error beep + speech
-talkback "Tests passed!"                 # success beep + speech
-talkback "Starting build"                # speech only
+# Install sox
+brew install sox        # macOS
+apt install sox         # Linux
+choco install sox       # Windows
+
+# For local TTS on Linux
+apt install espeak-ng
 ```
 
-## Git Integration
-
-Announce git events automatically:
-
-```bash
-# Check current status
-talkback git
-
-# Install hooks (post-commit, post-checkout, pre-push, post-merge)
-talkback git install
-
-# Remove hooks
-talkback git uninstall
-```
-
-Once installed, you'll hear:
-- "Committed: fix login bug" after commits
-- "Switched to feature-branch" when changing branches
-- "Pushing main" before pushes
-- "Merge complete" after merges
-
-## How It Works
+## Configuration
 
 ```
-text → phonetics → strip code → detect sentiment → [cache check] → TTS API → sox play
-                                                         ↓
-                                                   [cache hit] → play cached audio
+~/.talkback/
+├── config.json    # API keys and preferences
+├── stats.json     # Usage statistics
+├── quiet.json     # Quiet hours config
+├── theme.json     # Sound theme
+├── cache/         # Cached audio files
+├── locks/         # Voice reservations
+└── queue.json     # Message queue
 ```
 
-1. **Text Processing** — Phonetic fixes, code stripping, sentiment detection
-2. **Caching** — Check for cached audio before API call
-3. **Providers** — Multiple TTS backends (ElevenLabs, OpenAI, Azure, AWS, Google)
-4. **Fallback** — Local TTS when API unavailable
-5. **Queue** — Rapid messages are queued and played in order
-6. **Locks** — File-based locks prevent audio overlap
-
-## Files
+## Project Structure
 
 ```
 src/
-├── index.ts      CLI entry point (Commander-based)
-├── api.ts        ElevenLabs TTS client
-├── providers.ts  Multi-provider abstraction
-├── player.ts     Sox audio playback + voice signatures
-├── voices.ts     Voice configuration
-├── text.ts       Phonetics, code stripping, sentiment
-├── cache.ts      Audio caching
-├── local-tts.ts  Local TTS fallback (say/espeak)
-├── stats.ts      Usage tracking
-├── locks.ts      Voice reservation
-├── queue.ts      Message queue
-├── setup.ts      Setup wizard
-├── validation.ts JSON schema validation
-└── git.ts        Git hooks management
+├── index.ts        # CLI entry point
+├── api.ts          # ElevenLabs TTS client
+├── providers.ts    # Multi-provider abstraction
+├── player.ts       # Audio playback + themes
+├── voices.ts       # Voice configuration
+├── text.ts         # Phonetics, sentiment detection
+├── cache.ts        # Audio caching
+├── local-tts.ts    # Local TTS fallback
+├── stats.ts        # Usage tracking
+├── locks.ts        # Voice reservation
+├── queue.ts        # Priority message queue
+├── setup.ts        # Setup wizard
+├── quiet.ts        # Quiet hours
+├── themes.ts       # Sound themes
+├── summarize.ts    # AI summarization
+├── mcp-server.ts   # MCP server for AI agents
+└── git.ts          # Git hooks
+
+integrations/
+├── claude-code/    # MCP config
+├── cursor/         # .cursorrules
+├── continue/       # Slash commands
+└── aider/          # Config file
 ```
-
-## Security
-
-### API Key Management
-
-Your API keys are sensitive. Talkback provides two options:
-
-**Option 1: Environment Variables (Recommended)**
-```bash
-export ELEVENLABS_API_KEY="your-key-here"
-export OPENAI_API_KEY="your-key-here"
-# etc.
-```
-This keeps your keys out of the filesystem and works well with secrets managers.
-
-**Option 2: Config File**
-The `setup` and `provider add` commands store keys in `~/.talkback/config.json` with restricted permissions (owner read/write only).
-
-### Git Hooks
-
-Git hooks installed by `talkback git install` sanitize commit messages and branch names to prevent shell injection.
-
-### Data Files
-
-All data files are validated on load. Corrupted files are reset to defaults rather than causing undefined behavior.
-
-### Network Security
-
-- All API calls use HTTPS
-- Requests have a 30-second timeout
-- Only whitelisted environment variables are passed to child processes
 
 ## License
 
