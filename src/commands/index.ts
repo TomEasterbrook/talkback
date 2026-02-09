@@ -11,5 +11,6 @@ export {
   handleProvider,
   handleQuiet,
   handleTheme,
+  handlePiper,
   type StatsOptions,
 } from "./admin.js";

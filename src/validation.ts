@@ -26,6 +26,7 @@ export interface Config {
   localFallback?: boolean; // Use local TTS when API fails or budget exceeded
   provider?: ProviderName; // Active TTS provider
   providers?: ProviderCredentials; // Provider-specific credentials
+  piperVoice?: string; // Preferred Piper voice for local TTS fallback
 }
 
 const VALID_PROVIDERS: ProviderName[] = ["elevenlabs", "openai", "azure", "aws", "google"];
@@ -41,6 +42,7 @@ export function isValidConfig(data: unknown): data is Config {
   if (obj.provider !== undefined && !VALID_PROVIDERS.includes(obj.provider as ProviderName))
     return false;
   if (obj.providers !== undefined && typeof obj.providers !== "object") return false;
+  if (obj.piperVoice !== undefined && typeof obj.piperVoice !== "string") return false;
 
   return true;
 }

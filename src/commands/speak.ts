@@ -12,7 +12,7 @@ import { getVoice, DEFAULT_VOICE, VOICE_NAMES } from "../voices.js";
 import { addToQueue, takeFromQueue, acquirePlaybackLock, releasePlaybackLock, type Message } from "../queue.js";
 import { getApiKey, loadConfig } from "../setup.js";
 import { recordUsage, checkBudget, checkWarningThresholds, getBudgetUsage } from "../stats.js";
-import { speakLocal, isLocalTTSAvailable, getLocalTTSStatus } from "../local-tts.js";
+import { speakLocal, isLocalTTSAvailable, getLocalTTSStatus, setPreferredPiperVoice } from "../local-tts.js";
 import { getFromCache, saveToCache, type CacheKey } from "../cache.js";
 import { createProvider, type ProviderName } from "../providers.js";
 import { summarizeText } from "../summarize.js";
@@ -90,9 +90,14 @@ export async function speak(text: string, options: SpeakOptions): Promise<void> 
     return;
   }
 
-  // Get API key
+  // Get API key and config
   const apiKey = await getApiKey();
   const config = await loadConfig();
+
+  // Load preferred Piper voice for local fallback
+  if (config.piperVoice) {
+    setPreferredPiperVoice(config.piperVoice);
+  }
 
   // If no API key, try local TTS
   if (!apiKey) {

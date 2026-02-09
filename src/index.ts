@@ -25,6 +25,7 @@ import {
   handleProvider,
   handleQuiet,
   handleTheme,
+  handlePiper,
   type SpeakOptions,
   type StatsOptions,
 } from "./commands/index.js";
@@ -157,6 +158,15 @@ program
   .argument("[name]", `Theme: ${getThemeNames().join(", ")}`)
   .action(async (name?: string) => {
     await handleTheme(name);
+  });
+
+program
+  .command("piper")
+  .description("Manage Piper neural TTS (high-quality local fallback)")
+  .argument("[action]", "Action: install, voices")
+  .argument("[voice]", "Voice name for install (e.g., en_GB-cori-medium)")
+  .action(async (action?: string, voice?: string) => {
+    await handlePiper(action, voice);
   });
 
 program.parseAsync().catch((err) => {

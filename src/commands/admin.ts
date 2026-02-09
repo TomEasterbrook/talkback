@@ -12,7 +12,14 @@ import { getProviderNames, type ProviderName } from "../providers.js";
 import { parseQuietHours, setQuietHours, disableQuietHours, formatQuietStatus } from "../quiet.js";
 import { getCurrentTheme, setTheme, getAllThemes, getThemeNames, isValidTheme } from "../themes.js";
 import { playBeep } from "../player.js";
-import { buildProviderConfig } from "./speak.js";
+import {
+  getPiperStatus,
+  downloadPiperVoice,
+  listPiperVoices,
+  speakLocal,
+  getPiperVoiceCatalog,
+  setPreferredPiperVoice,
+} from "../local-tts.js";
 
 // --- Stats ---
 
@@ -268,6 +275,72 @@ export async function handleQuiet(times?: string): Promise<void> {
 
   await setQuietHours(ranges);
   console.log(await formatQuietStatus());
+}
+
+// --- Piper ---
+
+export async function handlePiper(subcommand?: string, voiceName?: string): Promise<void> {
+  const status = await getPiperStatus();
+
+  if (subcommand === "install") {
+    if (!status.installed) {
+      console.log("Piper not found. Install it first:");
+      console.log("  macOS:  pip3 install piper-tts");
+      console.log("  Linux:  pip3 install piper-tts");
+      process.exit(1);
+    }
+
+    try {
+      const installedVoice = voiceName ?? "en_US-lessac-medium";
+      await downloadPiperVoice(installedVoice);
+      setPreferredPiperVoice(installedVoice);
+
+      // Save voice preference to config
+      const config = await loadConfig();
+      config.piperVoice = installedVoice;
+      await saveConfig(config);
+
+      console.log("\nTesting voice...");
+      await speakLocal("Piper is ready. This is high quality neural text to speech.", { speed: "normal" });
+    } catch (err) {
+      console.error(`Failed to install voice: ${(err as Error).message}`);
+      process.exit(1);
+    }
+    return;
+  }
+
+  if (subcommand === "voices") {
+    const installed = await listPiperVoices();
+    const catalog = getPiperVoiceCatalog();
+
+    console.log("\nAvailable Piper voices:\n");
+    for (const voice of catalog) {
+      const marker = installed.includes(voice.name) ? " [installed]" : "";
+      console.log(`  ${voice.name}`);
+      console.log(`      ${voice.description}${marker}\n`);
+    }
+    console.log("Install a voice: talkback piper install <voice-name>");
+    return;
+  }
+
+  // Default: show status
+  console.log("\nPiper TTS Status\n");
+  console.log(`  Binary:  ${status.installed ? "installed" : "not found"}`);
+  console.log(`  Voice:   ${status.hasVoice ? status.voicePath : "not installed"}`);
+
+  if (!status.installed) {
+    console.log("\nInstall Piper:");
+    console.log("  pip3 install piper-tts");
+  } else if (!status.hasVoice) {
+    console.log("\nInstall a voice:");
+    console.log("  talkback piper install              (US female default)");
+    console.log("  talkback piper install en_GB-cori-medium   (British female)");
+    console.log("  talkback piper voices               (see all options)");
+  } else {
+    console.log("\nPiper is ready to use as local TTS fallback.");
+    console.log("Install more voices: talkback piper voices");
+  }
+  console.log();
 }
 
 // --- Theme ---
