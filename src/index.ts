@@ -42,6 +42,13 @@ import { speakLocal, isLocalTTSAvailable, getLocalTTSStatus } from "./local-tts.
 import { getFromCache, saveToCache, clearCache, getCacheStats, type CacheKey } from "./cache.js";
 import { createProvider, getProviderNames, type ProviderName } from "./providers.js";
 import { summarizeText, isSummarizationAvailable, getSummaryProviderName } from "./summarize.js";
+import {
+  isQuietTime,
+  parseQuietHours,
+  setQuietHours,
+  disableQuietHours,
+  formatQuietStatus,
+} from "./quiet.js";
 
 // --- CLI Options Interface ---
 
@@ -357,6 +364,11 @@ async function configureProvider(name: ProviderName): Promise<void> {
 // --- Main speak functionality ---
 
 async function speak(text: string, options: SpeakOptions): Promise<void> {
+  // Check quiet hours (skip for critical priority)
+  if (options.priority !== "critical" && (await isQuietTime())) {
+    return; // Silent during quiet hours
+  }
+
   const maxLength = parseInt(String(options.maxLength), 10) || 500;
 
   let processedText = text;
@@ -756,6 +768,33 @@ program
   .argument("[action]", "Action: install, uninstall")
   .action(async (action?: string) => {
     await handleGit(action);
+  });
+
+program
+  .command("quiet")
+  .description("Set quiet hours (silence during specified times)")
+  .argument("[times]", "Time ranges: 9am-10am,2pm-3pm or 'off' to disable")
+  .action(async (times?: string) => {
+    if (!times) {
+      // Show current status
+      console.log(await formatQuietStatus());
+      return;
+    }
+
+    if (times === "off" || times === "disable") {
+      await disableQuietHours();
+      console.log("Quiet hours disabled");
+      return;
+    }
+
+    const ranges = parseQuietHours(times);
+    if (ranges.length === 0) {
+      console.error("Invalid time format. Examples: 9am-10am, 14:00-15:00, 9-10");
+      process.exit(1);
+    }
+
+    await setQuietHours(ranges);
+    console.log(await formatQuietStatus());
   });
 
 program.parseAsync().catch((err) => {
