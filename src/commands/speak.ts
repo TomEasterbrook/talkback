@@ -8,7 +8,7 @@
 import { textToSpeech, textToSpeechStream } from "../api.js";
 import { playAudio, playAudioStream, playBeep, playVoiceSignature, getWhisperVolume } from "../player.js";
 import { processForSpeech, detectSentiment } from "../text.js";
-import { getVoice, DEFAULT_VOICE, VOICE_NAMES } from "../voices.js";
+import { getVoice, getDefaultVoice, VOICE_NAMES } from "../voices.js";
 import { addToQueue, takeFromQueue, acquirePlaybackLock, releasePlaybackLock, type Message } from "../queue.js";
 import { getApiKey, loadConfig } from "../setup.js";
 import { recordUsage, checkBudget, checkWarningThresholds, getBudgetUsage } from "../stats.js";
@@ -61,6 +61,9 @@ export async function speak(text: string, options: SpeakOptions): Promise<void> 
   // Process text for natural speech (phonetics, code stripping)
   const processed = processForSpeech(truncated);
 
+  // Get config early (needed for default voice and later settings)
+  const config = await loadConfig();
+
   // Detect sentiment for auto-beep
   const sentiment = detectSentiment(text);
 
@@ -70,7 +73,7 @@ export async function speak(text: string, options: SpeakOptions): Promise<void> 
   }
 
   // Resolve voice (needed for signature)
-  const voiceName = options.voice ?? process.env.TALKBACK_VOICE ?? DEFAULT_VOICE;
+  const voiceName = options.voice ?? process.env.TALKBACK_VOICE ?? getDefaultVoice(config.voiceGender);
   const voice = getVoice(voiceName);
 
   if (!voice) {
@@ -90,9 +93,8 @@ export async function speak(text: string, options: SpeakOptions): Promise<void> 
     return;
   }
 
-  // Get API key and config
+  // Get API key
   const apiKey = await getApiKey();
-  const config = await loadConfig();
 
   // Load preferred Piper voice for local fallback
   if (config.piperVoice) {

@@ -6,21 +6,23 @@
 
 import { textToSpeech } from "../api.js";
 import { playAudio } from "../player.js";
-import { getVoice, getVoiceDisplayName, getAllVoices, getAccent, DEFAULT_VOICE } from "../voices.js";
+import { getVoice, getVoiceDisplayName, getAllVoices, getAccent, getDefaultVoice } from "../voices.js";
 import { reserveVoice, releaseVoice, getVoiceStatuses } from "../locks.js";
-import { getApiKey } from "../setup.js";
+import { getApiKey, loadConfig } from "../setup.js";
 import { recordUsage } from "../stats.js";
 
 /**
  * Display all available voices.
  */
-export function showVoices(): void {
+export async function showVoices(): Promise<void> {
   const voices = getAllVoices();
   const accent = getAccent();
+  const config = await loadConfig();
+  const defaultVoice = getDefaultVoice(config.voiceGender);
 
   console.log(`\nAvailable voices (${accent === "british" ? "British" : "US"}):\n`);
   for (const [key, voice] of Object.entries(voices)) {
-    const marker = key === DEFAULT_VOICE ? " (default)" : "";
+    const marker = key === defaultVoice ? " (default)" : "";
     console.log(`  ${voice.name.padEnd(8)} ${voice.description}${marker}`);
   }
   console.log("\nChange accent: talkback setup\n");

@@ -23,6 +23,7 @@ export interface ProviderCredentials {
 export interface Config {
   apiKey?: string; // Legacy: ElevenLabs API key
   accent?: "us" | "british";
+  voiceGender?: "male" | "female"; // Preferred gender for default voice
   localFallback?: boolean; // Use local TTS when API fails or budget exceeded
   provider?: ProviderName; // Active TTS provider
   providers?: ProviderCredentials; // Provider-specific credentials
@@ -38,6 +39,8 @@ export function isValidConfig(data: unknown): data is Config {
 
   if (obj.apiKey !== undefined && typeof obj.apiKey !== "string") return false;
   if (obj.accent !== undefined && obj.accent !== "us" && obj.accent !== "british") return false;
+  if (obj.voiceGender !== undefined && obj.voiceGender !== "male" && obj.voiceGender !== "female")
+    return false;
   if (obj.localFallback !== undefined && typeof obj.localFallback !== "boolean") return false;
   if (obj.provider !== undefined && !VALID_PROVIDERS.includes(obj.provider as ProviderName))
     return false;

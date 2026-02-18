@@ -84,7 +84,7 @@ program
   .description("List available voices")
   .action(async () => {
     await loadSavedAccent();
-    showVoices();
+    await showVoices();
   });
 
 program

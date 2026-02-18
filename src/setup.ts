@@ -13,7 +13,13 @@ import { existsSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { isApiKeyValid, textToSpeech } from "./api.js";
 import { isSoxInstalled, playAudio } from "./player.js";
-import { getAllVoices, setAccent, DEFAULT_VOICE, type Accent } from "./voices.js";
+import {
+  getAllVoices,
+  setAccent,
+  getDefaultVoice,
+  type Accent,
+  type VoiceGender,
+} from "./voices.js";
 import { parseConfig, defaultConfig, type Config } from "./validation.js";
 import { TALKBACK_DIR, CONFIG_FILE, CONFIG_FILE_MODE, DIR_MODE } from "./constants.js";
 
@@ -59,6 +65,11 @@ export async function loadSavedAccent(): Promise<void> {
   }
 }
 
+export async function getConfiguredDefaultVoice(): Promise<string> {
+  const config = await loadConfig();
+  return getDefaultVoice(config.voiceGender);
+}
+
 // --- Setup wizard ---
 
 export async function runSetup(): Promise<void> {
@@ -97,6 +108,16 @@ export async function runSetup(): Promise<void> {
   setAccent(accent);
   console.log(`✓ ${accent === "british" ? "British" : "US"} voices selected`);
 
+  // Choose voice gender
+  console.log("\nDefault voice gender:");
+  console.log("  1) Male (Alex)");
+  console.log("  2) Female (Sam)\n");
+
+  const defaultGender = existingConfig.voiceGender === "female" ? "2" : "1";
+  const genderChoice = await prompt(`Choose [${defaultGender}]: `);
+  const voiceGender: VoiceGender = genderChoice.trim() === "2" ? "female" : "male";
+  console.log(`✓ ${voiceGender === "female" ? "Female" : "Male"} default voice selected`);
+
   // Get API key
   console.log("\nElevenLabs API key required.");
   console.log("Get one at: https://elevenlabs.io/app/settings/api-keys\n");
@@ -126,13 +147,13 @@ export async function runSetup(): Promise<void> {
   console.log("✓ API key valid");
 
   // Save
-  await saveConfig({ apiKey, accent });
+  await saveConfig({ apiKey, accent, voiceGender });
   console.log(`✓ Config saved to ${CONFIG_FILE}`);
 
   // Test audio
   console.log("\nTesting audio...");
   try {
-    const voice = getAllVoices()[DEFAULT_VOICE];
+    const voice = getAllVoices()[getDefaultVoice(voiceGender)];
     const audio = await textToSpeech(apiKey, {
       text: "Talkback is ready!",
       voiceId: voice.elevenLabsId,

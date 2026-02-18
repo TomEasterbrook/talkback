@@ -25,9 +25,9 @@ import { z } from "zod";
 import { textToSpeech, type SpeechSpeed } from "./api.js";
 import { playAudio, playBeep, getWhisperVolume } from "./player.js";
 import { processForSpeech, detectSentiment } from "./text.js";
-import { getVoice, getAllVoices, DEFAULT_VOICE } from "./voices.js";
+import { getVoice, getAllVoices, getDefaultVoice } from "./voices.js";
 import { reserveVoice, releaseVoice, getVoiceStatuses } from "./locks.js";
-import { getApiKey, loadSavedAccent } from "./setup.js";
+import { getApiKey, loadSavedAccent, loadConfig } from "./setup.js";
 import { recordUsage, checkBudget } from "./stats.js";
 import { isQuietTime } from "./quiet.js";
 import { getFromCache, saveToCache, type CacheKey } from "./cache.js";
@@ -75,7 +75,8 @@ server.tool(
       }
 
       const apiKey = await getApiKey();
-      const voiceName = voice ?? process.env.TALKBACK_VOICE ?? DEFAULT_VOICE;
+      const config = await loadConfig();
+      const voiceName = voice ?? process.env.TALKBACK_VOICE ?? getDefaultVoice(config.voiceGender);
       const voiceConfig = getVoice(voiceName);
       const speechSpeed: SpeechSpeed = speed ?? "normal";
 
@@ -263,8 +264,10 @@ server.tool(
   {},
   async () => {
     const voices = getAllVoices();
+    const config = await loadConfig();
+    const defaultVoice = getDefaultVoice(config.voiceGender);
     const lines = Object.entries(voices).map(([key, v]) => {
-      const isDefault = key === DEFAULT_VOICE ? " (default)" : "";
+      const isDefault = key === defaultVoice ? " (default)" : "";
       return `${v.name}: ${v.description}${isDefault}`;
     });
     return {
