@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Talkback - Voice for AI Coding Assistants</title>
+  <meta name="description" content="Text-to-speech CLI for AI coding assistants. Get audio feedback without leaving your terminal.">
+  <style>
+    :root {
+      --purple: #5b21b6;
+      --purple-light: #7c3aed;
+      --purple-dark: #4c1d95;
+      --bg: #0f0f0f;
+      --bg-light: #1a1a1a;
+      --text: #e5e5e5;
+      --text-muted: #a3a3a3;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    header {
+      text-align: center;
+      padding: 4rem 0 3rem;
+    }
+
+    .logo {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.75rem;
+      color: var(--purple-light);
+      white-space: pre;
+      line-height: 1.2;
+      margin-bottom: 1.5rem;
+    }
+
+    .tagline {
+      font-size: 1.5rem;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+    }
+
+    .install-box {
+      background: var(--bg-light);
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 1rem 1.5rem;
+      display: inline-block;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .install-box code {
+      color: var(--purple-light);
+    }
+
+    .cta-links {
+      margin-top: 1.5rem;
+    }
+
+    .cta-links a {
+      color: var(--purple-light);
+      text-decoration: none;
+      margin: 0 1rem;
+      font-weight: 500;
+    }
+
+    .cta-links a:hover {
+      text-decoration: underline;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.5rem;
+      margin: 3rem 0;
+    }
+
+    .feature {
+      background: var(--bg-light);
+      border: 1px solid #222;
+      border-radius: 8px;
+      padding: 1.5rem;
+    }
+
+    .feature h3 {
+      color: var(--purple-light);
+      margin-bottom: 0.5rem;
+      font-size: 1.1rem;
+    }
+
+    .feature p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    .demo {
+      background: var(--bg-light);
+      border: 1px solid #222;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin: 2rem 0;
+    }
+
+    .demo pre {
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 0.9rem;
+      overflow-x: auto;
+    }
+
+    .demo .comment {
+      color: #6b7280;
+    }
+
+    .demo .command {
+      color: var(--text);
+    }
+
+    .demo .flag {
+      color: var(--purple-light);
+    }
+
+    footer {
+      text-align: center;
+      padding: 3rem 0;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    footer a {
+      color: var(--purple-light);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="logo">████████╗ █████╗ ██╗     ██╗  ██╗██████╗  █████╗  ██████╗██╗  ██╗
+╚══██╔══╝██╔══██╗██║     ██║ ██╔╝██╔══██╗██╔══██╗██╔════╝██║ ██╔╝
+   ██║   ███████║██║     █████╔╝ ██████╔╝███████║██║     █████╔╝
+   ██║   ██╔══██║██║     ██╔═██╗ ██╔══██╗██╔══██║██║     ██╔═██╗
+   ██║   ██║  ██║███████╗██║  ██╗██████╔╝██║  ██║╚██████╗██║  ██╗
+   ╚═╝   ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═════╝ ╚═╝  ╚═╝ ╚═════╝╚═╝  ╚═╝</div>
+      <p class="tagline">Voice for AI coding assistants</p>
+      <div class="install-box">
+        <code>npm install -g talkback-cli</code>
+      </div>
+      <div class="cta-links">
+        <a href="https://github.com/TalkbackAi/talkback">GitHub</a>
+        <a href="https://github.com/TalkbackAi/talkback#readme">Docs</a>
+      </div>
+    </header>
+
+    <section class="features">
+      <div class="feature">
+        <h3>Instant Audio Feedback</h3>
+        <p>Get spoken notifications without switching windows. Perfect for long-running tasks.</p>
+      </div>
+      <div class="feature">
+        <h3>Multiple Voices</h3>
+        <p>Choose from US and British accents with distinct voices for multi-session work.</p>
+      </div>
+      <div class="feature">
+        <h3>Multi-Provider TTS</h3>
+        <p>ElevenLabs, OpenAI, Azure, AWS Polly, Google Cloud, or local fallback.</p>
+      </div>
+      <div class="feature">
+        <h3>MCP Integration</h3>
+        <p>Works with Claude Code and other MCP-compatible AI assistants.</p>
+      </div>
+      <div class="feature">
+        <h3>Fast & Non-Blocking</h3>
+        <p>CLI returns in ~50ms while audio plays in background. No workflow interruption.</p>
+      </div>
+      <div class="feature">
+        <h3>Smart Caching</h3>
+        <p>Audio caching reduces API calls and speeds up repeated phrases.</p>
+      </div>
+    </section>
+
+    <section class="demo">
+      <pre><span class="comment"># Speak a message</span>
+<span class="command">talkback</span> <span class="flag">"Build complete, 0 errors"</span>
+
+<span class="comment"># Play a sound</span>
+<span class="command">talkback</span> <span class="flag">--beep</span> success
+
+<span class="comment"># Use a specific voice</span>
+<span class="command">talkback</span> <span class="flag">-v sam</span> "Tests passed"
+
+<span class="comment"># Local TTS fallback</span>
+<span class="command">talkback</span> <span class="flag">--local</span> "No API needed"</pre>
+    </section>
+
+    <footer>
+      <p>MIT License &middot; <a href="https://github.com/TalkbackAi/talkback">View on GitHub</a></p>
+    </footer>
+  </div>
+</body>
+</html>
