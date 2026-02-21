@@ -110,7 +110,12 @@ export function setAccent(accent: Accent): void {
   currentAccent = accent;
 }
 
-export function getDefaultVoice(gender?: VoiceGender): string {
+export function getDefaultVoice(gender?: VoiceGender, configuredDefault?: string): string {
+  // If a specific voice is configured and it exists, use it
+  if (configuredDefault && getVoice(configuredDefault)) {
+    return configuredDefault.toLowerCase();
+  }
+  // Otherwise fall back to gender-based default
   if (gender === "female") return DEFAULT_FEMALE_VOICE;
   return DEFAULT_VOICE;
 }
@@ -129,4 +134,8 @@ export function getVoice(name: string): Voice | undefined {
 
 export function getVoiceDisplayName(name: string): string {
   return getVoice(name)?.name ?? name;
+}
+
+export function getVoicesForAccent(accent: Accent): Record<string, Voice> {
+  return VOICE_SETS[accent];
 }

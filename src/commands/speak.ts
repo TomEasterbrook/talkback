@@ -73,7 +73,8 @@ export async function speak(text: string, options: SpeakOptions): Promise<void> 
   }
 
   // Resolve voice (needed for signature)
-  const voiceName = options.voice ?? process.env.TALKBACK_VOICE ?? getDefaultVoice(config.voiceGender);
+  const voiceName =
+    options.voice ?? process.env.TALKBACK_VOICE ?? getDefaultVoice(config.voiceGender, config.defaultVoice);
   const voice = getVoice(voiceName);
 
   if (!voice) {
