@@ -18,14 +18,14 @@ export async function showVoices(): Promise<void> {
   const voices = getAllVoices();
   const accent = getAccent();
   const config = await loadConfig();
-  const defaultVoice = getDefaultVoice(config.voiceGender);
+  const defaultVoice = getDefaultVoice(config.voiceGender, config.defaultVoice);
 
   console.log(`\nAvailable voices (${accent === "british" ? "British" : "US"}):\n`);
   for (const [key, voice] of Object.entries(voices)) {
     const marker = key === defaultVoice ? " (default)" : "";
     console.log(`  ${voice.name.padEnd(8)} ${voice.description}${marker}`);
   }
-  console.log("\nChange accent: talkback setup\n");
+  console.log("\nChange voice: talkback voice setup\n");
 }
 
 /**

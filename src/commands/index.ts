@@ -4,6 +4,7 @@
 
 export { speak, type SpeakOptions } from "./speak.js";
 export { showVoices, showStatus, handleReserve, handleRelease } from "./voice.js";
+export { runVoiceSetup } from "./voice-setup.js";
 export {
   handleStats,
   handleGit,

@@ -10,7 +10,7 @@
 
 import { readFile, writeFile, mkdir, chmod } from "node:fs/promises";
 import { existsSync } from "node:fs";
-import { createInterface } from "node:readline";
+import * as p from "@clack/prompts";
 import { isApiKeyValid, textToSpeech } from "./api.js";
 import { isSoxInstalled, playAudio } from "./player.js";
 import {
@@ -67,115 +67,168 @@ export async function loadSavedAccent(): Promise<void> {
 
 export async function getConfiguredDefaultVoice(): Promise<string> {
   const config = await loadConfig();
-  return getDefaultVoice(config.voiceGender);
+  return getDefaultVoice(config.voiceGender, config.defaultVoice);
 }
 
 // --- Setup wizard ---
 
 export async function runSetup(): Promise<void> {
-  console.log("\n🎙️  Talkback Setup\n");
+  p.intro("🎙️  Talkback Setup");
 
-  // Check Node version
+  // Check prerequisites
+  const prereqSpinner = p.spinner();
+  prereqSpinner.start("Checking prerequisites");
+
   const nodeVersion = process.versions.node;
   const majorVersion = parseInt(nodeVersion.split(".")[0], 10);
   if (majorVersion < 18) {
-    console.log(`❌ Node.js 18+ required (you have ${nodeVersion})`);
+    prereqSpinner.stop("Prerequisites check failed");
+    p.cancel(`Node.js 18+ required (you have ${nodeVersion})`);
     process.exit(1);
   }
-  console.log(`✓ Node.js ${nodeVersion}`);
 
-  // Check sox
-  if (!(await isSoxInstalled())) {
-    console.log("\n❌ sox not found");
-    console.log("   Install with:");
-    console.log("   - macOS:   brew install sox");
-    console.log("   - Linux:   apt install sox libsox-fmt-mp3");
-    console.log("   - Windows: choco install sox");
+  const soxInstalled = await isSoxInstalled();
+  if (!soxInstalled) {
+    prereqSpinner.stop("Prerequisites check failed");
+    p.note(
+      "Install sox:\n" +
+        "  macOS:   brew install sox\n" +
+        "  Linux:   apt install sox libsox-fmt-mp3\n" +
+        "  Windows: choco install sox",
+      "sox not found"
+    );
+    p.cancel("Please install sox and try again");
     process.exit(1);
   }
-  console.log("✓ sox installed");
+
+  prereqSpinner.stop(`Node.js ${nodeVersion} and sox installed`);
 
   const existingConfig = await loadConfig();
 
-  // Choose accent
-  console.log("\nVoice accent:");
-  console.log("  1) US");
-  console.log("  2) British\n");
+  // Voice preferences
+  const accent = await p.select({
+    message: "Voice accent",
+    initialValue: existingConfig.accent ?? "us",
+    options: [
+      { value: "us", label: "US English", hint: "American accent" },
+      { value: "british", label: "British English", hint: "UK accent" },
+    ],
+  });
 
-  const defaultAccent = existingConfig.accent === "british" ? "2" : "1";
-  const accentChoice = await prompt(`Choose [${defaultAccent}]: `);
-  const accent: Accent = accentChoice.trim() === "2" ? "british" : "us";
-  setAccent(accent);
-  console.log(`✓ ${accent === "british" ? "British" : "US"} voices selected`);
+  if (p.isCancel(accent)) {
+    p.cancel("Setup cancelled");
+    process.exit(0);
+  }
 
-  // Choose voice gender
-  console.log("\nDefault voice gender:");
-  console.log("  1) Male (Alex)");
-  console.log("  2) Female (Sam)\n");
+  setAccent(accent as Accent);
 
-  const defaultGender = existingConfig.voiceGender === "female" ? "2" : "1";
-  const genderChoice = await prompt(`Choose [${defaultGender}]: `);
-  const voiceGender: VoiceGender = genderChoice.trim() === "2" ? "female" : "male";
-  console.log(`✓ ${voiceGender === "female" ? "Female" : "Male"} default voice selected`);
+  const voiceGender = await p.select({
+    message: "Default voice",
+    initialValue: existingConfig.voiceGender ?? "male",
+    options: [
+      { value: "male", label: "Alex", hint: "Male voice" },
+      { value: "female", label: "Sam", hint: "Female voice" },
+    ],
+  });
 
-  // Get API key
-  console.log("\nElevenLabs API key required.");
-  console.log("Get one at: https://elevenlabs.io/app/settings/api-keys\n");
+  if (p.isCancel(voiceGender)) {
+    p.cancel("Setup cancelled");
+    process.exit(0);
+  }
 
+  // API key
   let apiKey: string;
+
   if (existingConfig.apiKey) {
     const masked = existingConfig.apiKey.slice(0, 8) + "..." + existingConfig.apiKey.slice(-4);
-    const keepExisting = await prompt(`Use existing key (${masked})? [Y/n] `);
-    apiKey =
-      keepExisting.toLowerCase() === "n" ? await prompt("Enter API key: ") : existingConfig.apiKey;
+    const useExisting = await p.confirm({
+      message: `Use existing API key? (${masked})`,
+      initialValue: true,
+    });
+
+    if (p.isCancel(useExisting)) {
+      p.cancel("Setup cancelled");
+      process.exit(0);
+    }
+
+    if (useExisting) {
+      apiKey = existingConfig.apiKey;
+    } else {
+      const newKey = await p.text({
+        message: "Enter ElevenLabs API key",
+        placeholder: "sk_...",
+        validate: (value) => {
+          if (!value?.trim()) return "API key is required";
+        },
+      });
+
+      if (p.isCancel(newKey)) {
+        p.cancel("Setup cancelled");
+        process.exit(0);
+      }
+
+      apiKey = newKey.trim();
+    }
   } else {
-    apiKey = await prompt("Enter API key: ");
+    p.note(
+      "Get your API key at:\nhttps://elevenlabs.io/app/settings/api-keys",
+      "ElevenLabs API key required"
+    );
+
+    const newKey = await p.text({
+      message: "Enter API key",
+      placeholder: "sk_...",
+      validate: (value) => {
+        if (!value?.trim()) return "API key is required";
+      },
+    });
+
+    if (p.isCancel(newKey)) {
+      p.cancel("Setup cancelled");
+      process.exit(0);
+    }
+
+    apiKey = newKey.trim();
   }
 
-  apiKey = apiKey.trim();
-  if (!apiKey) {
-    console.log("❌ API key required");
+  // Validate API key
+  const validateSpinner = p.spinner();
+  validateSpinner.start("Validating API key");
+
+  const isValid = await isApiKeyValid(apiKey);
+  if (!isValid) {
+    validateSpinner.stop("Validation failed");
+    p.cancel("Invalid API key");
     process.exit(1);
   }
 
-  // Validate
-  console.log("\nValidating API key...");
-  if (!(await isApiKeyValid(apiKey))) {
-    console.log("❌ Invalid API key");
-    process.exit(1);
-  }
-  console.log("✓ API key valid");
+  validateSpinner.stop("API key valid");
 
-  // Save
-  await saveConfig({ apiKey, accent, voiceGender });
-  console.log(`✓ Config saved to ${CONFIG_FILE}`);
+  // Save config
+  await saveConfig({
+    apiKey,
+    accent: accent as Accent,
+    voiceGender: voiceGender as VoiceGender,
+  });
+
+  p.log.success(`Config saved to ${CONFIG_FILE}`);
 
   // Test audio
-  console.log("\nTesting audio...");
+  const testSpinner = p.spinner();
+  testSpinner.start("Testing audio playback");
+
   try {
-    const voice = getAllVoices()[getDefaultVoice(voiceGender)];
+    const voice = getAllVoices()[getDefaultVoice(voiceGender as VoiceGender)];
     const audio = await textToSpeech(apiKey, {
       text: "Talkback is ready!",
       voiceId: voice.elevenLabsId,
     });
     await playAudio(audio);
-    console.log("✓ Audio working");
+    testSpinner.stop("Audio working");
   } catch (err) {
-    console.log(`⚠️  Audio test failed: ${(err as Error).message}`);
+    testSpinner.stop("Audio test failed");
+    p.log.warn(`Audio test failed: ${(err as Error).message}`);
   }
 
-  // Done
-  console.log("\n" + "─".repeat(50));
-  console.log("\n✅ Setup complete!\n");
-  console.log("Try it: talkback Hello world\n");
-}
-
-function prompt(question: string): Promise<string> {
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer);
-    });
-  });
+  p.outro("Setup complete! Try: talkback Hello world");
 }

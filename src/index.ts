@@ -26,6 +26,7 @@ import {
   handleQuiet,
   handleTheme,
   handlePiper,
+  runVoiceSetup,
   type SpeakOptions,
   type StatsOptions,
 } from "./commands/index.js";
@@ -79,12 +80,52 @@ program
     await runSetup();
   });
 
-program
-  .command("voices")
+const voiceCmd = program
+  .command("voice")
+  .description("Voice management commands")
+  .action(async () => {
+    // Default action: list voices
+    await loadSavedAccent();
+    await showVoices();
+  });
+
+voiceCmd
+  .command("list")
   .description("List available voices")
   .action(async () => {
     await loadSavedAccent();
     await showVoices();
+  });
+
+voiceCmd
+  .command("setup")
+  .description("Interactive wizard to browse, try, and set default voice")
+  .action(async () => {
+    await runVoiceSetup();
+  });
+
+voiceCmd
+  .command("reserve")
+  .description("Reserve a voice for this session")
+  .action(async () => {
+    await loadSavedAccent();
+    await handleReserve();
+  });
+
+voiceCmd
+  .command("release")
+  .description("Release your reserved voice")
+  .argument("[name]", "Voice name to release")
+  .action(async (name?: string) => {
+    await handleRelease(name);
+  });
+
+voiceCmd
+  .command("status")
+  .description("Show which voices are in use")
+  .action(async () => {
+    await loadSavedAccent();
+    await showStatus();
   });
 
 program
@@ -112,29 +153,6 @@ program
     await handleProvider(action, name);
   });
 
-program
-  .command("reserve")
-  .description("Reserve a voice for this session")
-  .action(async () => {
-    await loadSavedAccent();
-    await handleReserve();
-  });
-
-program
-  .command("release")
-  .description("Release your reserved voice")
-  .argument("[voice]", "Voice name to release")
-  .action(async (voice?: string) => {
-    await handleRelease(voice);
-  });
-
-program
-  .command("status")
-  .description("Show which voices are in use")
-  .action(async () => {
-    await loadSavedAccent();
-    await showStatus();
-  });
 
 program
   .command("git")
