@@ -11,6 +11,7 @@
 import { readFile, writeFile, mkdir, chmod } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import * as p from "@clack/prompts";
+import { printBanner } from "./banner.js";
 import { isApiKeyValid, textToSpeech } from "./api.js";
 import { isSoxInstalled, playAudio } from "./player.js";
 import {
@@ -73,7 +74,8 @@ export async function getConfiguredDefaultVoice(): Promise<string> {
 // --- Setup wizard ---
 
 export async function runSetup(): Promise<void> {
-  p.intro("🎙️  Talkback Setup");
+  printBanner();
+  p.intro("Setup");
 
   // Check prerequisites
   const prereqSpinner = p.spinner();

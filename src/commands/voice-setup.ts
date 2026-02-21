@@ -6,6 +6,7 @@
  */
 
 import * as p from "@clack/prompts";
+import { printBanner } from "../banner.js";
 import { loadConfig, saveConfig } from "../setup.js";
 import { getVoicesForAccent, setAccent, type Accent, type Voice } from "../voices.js";
 import { textToSpeech } from "../api.js";
@@ -98,7 +99,8 @@ export async function runVoiceSetup(): Promise<void> {
 
   setAccent(currentAccent);
 
-  p.intro("🎤 Voice Setup");
+  printBanner();
+  p.intro("Voice Setup");
 
   while (true) {
     const voices = getVoicesForAccent(currentAccent);
